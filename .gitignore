@@ -1,0 +1,23 @@
+# Build
+build/
+dist/
+
+# Dépendances
+node_modules/
+
+# Variables d'environnement
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Prisma generated
+src/generated/
+src/prisma/migrations
