@@ -57,5 +57,50 @@ export const createArticle = async (data: CreateArticleInput) => {
             status: data.status ?? "DRAFT",
         },
     });
+};
+
+type UpdateArticleInput = {
+    title?: string;
+    content?: string;
+    summary?: string;
+    presentationImageUrl?: string;
+    status?: "DRAFT" | "PUBLISHED";
+    updatedById: number;
+    // Est ce que je passe updatedAt --> non je pense que je le gère du côté back-end
+    // Est ce que je passe updatedBy ? Je ne sais pas où je le gère ... non je pense que c'est aussi côté back-end
+}
+export const updateArticle = async (oldSlug: string, data: UpdateArticleInput) => {
+    const article = await prisma.article.findUnique({
+        where: { slug: oldSlug }
+    });
+
+    if (!article) {
+        throw new Error("ARTICLE_NOT_FOUND");
+    }
+
+    const newSlug = data.title ? generateSlug(data.title) : article.slug; // const newSlug = generateSlug(data.title); A modifier ?  
+
+    if (newSlug !== oldSlug) {
+        const existingSlug = await prisma.article.findUnique( { where: { slug: newSlug } });
+        if (existingSlug) {
+            throw new Error("ARTICLE_SLUG_ALREADY_EXISTS");
+        };
+    };
+
+
+    return prisma.article.update({
+        where: { slug: oldSlug },
+        data: {
+            title: data.title ?? article.title,
+            slug: newSlug,
+            content: data.content ?? article.content,
+            summary: data.summary ?? article.summary,
+            presentationImageUrl: data.presentationImageUrl ?? article.presentationImageUrl,
+            updatedAt: new Date(),
+            updatedById: data.updatedById, // La maj à faire sera sûrement updatedById: req.user.id
+            status: data.status ?? article.status,
+        },
+    });
 
 };
+
