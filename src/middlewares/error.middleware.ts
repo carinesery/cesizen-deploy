@@ -6,7 +6,7 @@ export const errorMiddleware = (
     res: Response,
     next: NextFunction
 ) => {
-    console.error("🔥 ERROR: ", error);
+    console.error("🔥 ERROR: ", error.message, "sur", req.url);
 
     res. status(500).json({
         message: "Une erreur interne est survenue",
