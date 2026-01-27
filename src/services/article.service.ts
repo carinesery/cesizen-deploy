@@ -53,7 +53,9 @@ export const createArticle = async (data: CreateArticleInput) => {
             summary: data.summary,
             presentationImageUrl: data.presentationImageUrl,
             authorId: data.authorId,
-            status: data.status,
+            updatedAt: null,
+            status: data.status ?? "DRAFT",
         },
     });
+
 };
