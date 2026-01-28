@@ -1,5 +1,8 @@
 import { prisma } from "../prismaClient.js";
 import { generateSlug } from "../utils/generatedSlug.js";
+import { z } from "zod";
+import { createArticleSchema, updateArticleSchema } from "../schemas/article.schema.js";
+
 
 export const getPublicArticles = async () => {
     return prisma.article.findMany({
@@ -26,6 +29,7 @@ export const getPublicArticles = async () => {
     });
 };
 
+// A mettre en commentaire :
 type CreateArticleInput = {
     title: string;
     content?: string;
@@ -59,6 +63,7 @@ export const createArticle = async (data: CreateArticleInput) => {
     });
 };
 
+// A mettre en commentaire aussi : 
 type UpdateArticleInput = {
     title?: string;
     content?: string;
