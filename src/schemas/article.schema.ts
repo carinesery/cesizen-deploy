@@ -1,0 +1,33 @@
+import { z } from "zod";
+
+export const articleStatusEnum = z.enum([
+    "DRAFT",
+    "PUBLISHED",
+    "ARCHIVED",
+]);
+
+export const articleSchema = z.object({
+    title: z
+        .string()
+        .min(3, "Le titre doit faire au moins 3 caractères")
+        .max(200, "Le titre ne doit pas dépasser 200 caractères"),
+    summary: z
+        .string()
+        .max(1000, "Le résumé est trop long")
+        .optional(),
+    content: z
+        .string()
+        .max(10000, "Le contenu est trop long")
+        .optional(),
+    presentationImageUrl: z
+        .string()
+        .max(255, "URL trop longue")
+        .optional(),
+    status: articleStatusEnum.optional(),
+});
+
+export const createArticleSchema = articleSchema;
+export const updateArticleSchema = articleSchema.partial();
+
+export type CreateArticleInput = z.infer<typeof createArticleSchema>;
+export type UpdateArticleInput = z.infer<typeof updateArticleSchema>;
