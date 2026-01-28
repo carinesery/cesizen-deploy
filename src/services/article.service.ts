@@ -29,6 +29,20 @@ export const getPublicArticles = async () => {
     });
 };
 
+export const readArticle = async (slug: string) => {
+    const article = await prisma.article.findFirst({
+        where: {
+            slug: slug,
+        }
+    });
+
+    if (!article) {
+        throw new Error("ARTICLE_NOT_FOUND");
+    }
+
+    return article
+};
+
 // A mettre en commentaire :
 type CreateArticleInput = {
     title: string;
@@ -86,7 +100,7 @@ export const updateArticle = async (oldSlug: string, data: UpdateArticleInput) =
     const newSlug = data.title ? generateSlug(data.title) : article.slug; // const newSlug = generateSlug(data.title); A modifier ?  
 
     if (newSlug !== oldSlug) {
-        const existingSlug = await prisma.article.findUnique( { where: { slug: newSlug } });
+        const existingSlug = await prisma.article.findUnique({ where: { slug: newSlug } });
         if (existingSlug) {
             throw new Error("ARTICLE_SLUG_ALREADY_EXISTS");
         };
