@@ -1,4 +1,4 @@
-import { getPublicArticles, createArticle, updateArticle } from "../services/article.service.js";
+import { getPublicArticles, readArticle, createArticle, updateArticle } from "../services/article.service.js";
 import { Request, Response, NextFunction } from "express";
 
 export const getArticles = async (
@@ -11,6 +11,27 @@ export const getArticles = async (
         res.status(200).json(articles);
     } catch (error) {
         next(error);
+    }
+}
+
+export const getArticle = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { slug } = req.params as { slug: string };
+
+    try {
+        const article = await readArticle(slug);
+        res.status(200).json(article);
+    } catch (error) {
+        if (error instanceof Error &&
+            error.message === "ARTICLE_NOT_FOUND") {
+            return res.status(404).json({
+                message: "Aucun article n'a été trouvé"
+            });
+        }
+         next(error);
     }
 }
 
