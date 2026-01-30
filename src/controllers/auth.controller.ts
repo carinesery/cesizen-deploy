@@ -71,17 +71,31 @@ export const confirmationEmail = async (
     }
 }
 
-// export const login = async (
-//     req: Request,
-//     res: Response,
-//     next: NextFunction
-// ) => {
-//     try {
-//         const data = loginUserSchema.parse(req.body);
-//         const user = await loginUser(data);
-//         res.status(201).json(user); // on ne va pas renvoyer tout le User donc à vérif
-//     } catch (error) {
-
-//         next(error);
-//     }
-// }
+export const login = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const data = loginUserSchema.parse(req.body);
+        const { user, token } = await loginUser(data);
+        res.status(200).json({
+            token,
+            user: {
+                username: user.username,
+                email: user.email,
+                role: user.role,
+            },
+        }); // on ne va pas renvoyer tout le User donc à vérif
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.message === "EMAIL_NOT_FOUND" || error.message === "INVALID_PASSWORD" || error.message === "INACTIVE_USER") {
+                return res.status(401).json({
+                    message: "Email ou mot de passe incorrect",
+                }
+                );
+            }
+        }
+        next(error);
+    }
+}

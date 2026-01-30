@@ -33,7 +33,7 @@ export const userLoginSchema = z.object({
         .max(50, "L'email ne doit pas dépasser 50 caractères"),
     password: z
         .string()
-        .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+        .min(1, "Le mot de passe est obligatoire"),
 });
 
 export const registerUserSchema = userRegisterSchema;
