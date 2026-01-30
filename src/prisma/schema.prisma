@@ -26,7 +26,7 @@ model Article {
   authorId             Int
   createdAt            DateTime      @default(now())
   updatedById          Int?
-  updatedAt            DateTime?     
+  updatedAt            DateTime?
   status               ArticleStatus @default(DRAFT)
 
   //Relations
@@ -84,12 +84,27 @@ model User {
   privacyConsentAt    DateTime
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
-  updatedAt           DateTime? 
+  updatedAt           DateTime?
 
   // Relations 
-  articlesCreated Article[] @relation("articleCreatedBy")
-  articlesUpdated Article[] @relation("articleUpdatedBy")
-  moodEntries MoodEntry[] @relation("userMoodEntries")
+  articlesCreated Article[]      @relation("articleCreatedBy")
+  articlesUpdated Article[]      @relation("articleUpdatedBy")
+  moodEntries     MoodEntry[]    @relation("userMoodEntries")
+  refreshTokens   RefreshToken[] @relation("userRefreshTokens")
+}
+
+model RefreshToken {
+  idRefreshToken Int      @id @default(autoincrement())
+  userId         Int
+  refreshToken   String   @unique
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+  revoked        Boolean  @default(false)
+
+  // Relation
+  user User @relation("userRefreshTokens", fields: [userId], references: [idUser])
+
+  @@index([userId])
 }
 
 enum EmotionLevel {
@@ -106,27 +121,28 @@ model Emotion {
   parentEmotionId Int?
 
   // Relations
-  parentEmotion Emotion?  @relation("emotionHierarchy", fields: [parentEmotionId], references: [idEmotion])
-  childEmotions  Emotion[] @relation("emotionHierarchy")
-  emotionEntry MoodEntry[] @relation("emotionEntry")
-  feelingEntry MoodEntry[] @relation("feelingEntry")
+  parentEmotion Emotion?    @relation("emotionHierarchy", fields: [parentEmotionId], references: [idEmotion])
+  childEmotions Emotion[]   @relation("emotionHierarchy")
+  emotionEntry  MoodEntry[] @relation("emotionEntry")
+  feelingEntry  MoodEntry[] @relation("feelingEntry")
 }
 
 model MoodEntry {
-  idMoodEntry Int @id @default(autoincrement())
-  emotionDate DateTime @default(now())
-  parentEmotionIntensity Int @default(5) // Vamidation au niveau applicatif
-  comment String? @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  userId Int 
-  emotionId Int
-  feelingId Int?
+  idMoodEntry            Int       @id @default(autoincrement())
+  emotionDate            DateTime  @default(now())
+  parentEmotionIntensity Int       @default(5) // Validation au niveau applicatif
+  comment                String?   @db.Text
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime?
+  userId                 Int
+  emotionId              Int
+  feelingId              Int?
 
   // Relations
-  user User @relation("userMoodEntries", fields: [userId], references: [idUser])
-  emotion Emotion @relation("emotionEntry", fields: [emotionId], references: [idEmotion])
-  feeling Emotion? @relation("feelingEntry", fields: [feelingId], references: [idEmotion]) 
+  user    User     @relation("userMoodEntries", fields: [userId], references: [idUser])
+  emotion Emotion  @relation("emotionEntry", fields: [emotionId], references: [idEmotion])
+  feeling Emotion? @relation("feelingEntry", fields: [feelingId], references: [idEmotion])
 
   @@unique([userId, emotionDate])
-} 
+  @@index([userId])
+}
