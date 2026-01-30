@@ -13,15 +13,15 @@ export const articleSchema = z.object({
         .max(200, "Le titre ne doit pas dépasser 200 caractères"),
     summary: z
         .string()
-        .max(1000, "Le résumé est trop long")
+        .max(1000, "Le résumé ne doit pas dépasser 1000 caractères")
         .optional(),
     content: z
         .string()
-        .max(10000, "Le contenu est trop long")
+        .max(10000, "Le contenu ne doit pas dépasser 10000 caractères")
         .optional(),
     presentationImageUrl: z
-        .string()
-        .max(255, "URL trop longue")
+        .url()
+        .max(255, "L'URL ne doit pas dépasser 255 caractères")
         .optional(),
     status: articleStatusEnum.optional(),
 });
