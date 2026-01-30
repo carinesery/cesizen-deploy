@@ -53,11 +53,11 @@ export const createUser = async (data: RegisterUserInput) => {
         process.env.JWT_EMAIL_SECRET!,
         { expiresIn: "1d" }
     );
-    
+
     const confirmUrl = `${process.env.FRONT_URL}/auth/confirm-email?token=${emailToken}`;
 
     await sendConfirmationEmail(user.email, confirmUrl);
-    
+
     return {
         user,
         confirmUrl,
@@ -65,31 +65,63 @@ export const createUser = async (data: RegisterUserInput) => {
 };
 
 export const confirmEmail = async (token: string) => {
-  // 1️⃣ Vérifier et décoder le token
-  const payload = jwt.verify(
-    token,
-    process.env.JWT_EMAIL_SECRET!
-  ) as {
-    idUser: number;
-    type: string;
-  };
+    // 1️⃣ Vérifier et décoder le token
+    const payload = jwt.verify(
+        token,
+        process.env.JWT_EMAIL_SECRET!
+    ) as {
+        idUser: number;
+        type: string;
+    };
 
-  // 2️⃣ Vérifier que c’est bien un token de confirmation
-  if (payload.type !== "EMAIL_CONFIRMATION") {
-    throw new Error("INVALID_TOKEN_TYPE");
-  }
+    // 2️⃣ Vérifier que c’est bien un token de confirmation
+    if (payload.type !== "EMAIL_CONFIRMATION") {
+        throw new Error("INVALID_TOKEN_TYPE");
+    }
 
-  // 3️⃣ Activer le compte
-  await prisma.user.update({
-    where: { idUser: payload.idUser },
-    data: {
-      isActive: true,
-      confirmationEmailAt: new Date(),
-    },
-  });
+    // 3️⃣ Activer le compte
+    await prisma.user.update({
+        where: { idUser: payload.idUser },
+        data: {
+            isActive: true,
+            confirmationEmailAt: new Date(),
+        },
+    });
 };
 
 export const loginUser = async (data: LoginUserInput) => {
+    const { email, password } = data;
 
+    const user = await prisma.user.findUnique({
+        where: { email: email },
+    });
+
+    if (!user) {
+        throw new Error("EMAIL_NOT_FOUND")
+    };
+
+    if (!user.isActive) {
+        throw new Error("INACTIVE_USER")
+    };
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isValid) { throw new Error("INVALID_PASSWORD") }
+
+
+    const token = jwt.sign(
+        {
+            idUser: user.idUser,
+            role: user.role,
+        },
+        process.env.JWT_SECRET!,
+        { expiresIn:"1h"}
+    );
+
+    return { user, token };
+
+    // Faire un refresh token
+    // Access token est envoyé à chaque requête et stocké dans LocalStroage ou cookies 5-10 min
+    // Refresh dans les cookies 60 jours. Il doit être stocké en base, et il faut le re-hashé (argon 2) --> axios conseillé
 
 }
