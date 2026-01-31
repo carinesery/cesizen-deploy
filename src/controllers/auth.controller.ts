@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from "express";
-import { createUser, confirmEmail, loginUser } from "../services/user.service.js";
+import { createUserService, confirmEmailService, loginUserService, refreshTokenService } from "../services/user.service.js";
 import { loginUserSchema, registerUserSchema } from "../schemas/user.schema.js";
 
-export const register = async (
+export const registerController = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
         const data = registerUserSchema.parse(req.body);
-        const { user } = await createUser(data);
+        const { user } = await createUserService(data);
         res.status(201).json({
             user: {
                 username: user.username,
@@ -46,7 +46,7 @@ export const register = async (
     }
 }
 
-export const confirmationEmail = async (
+export const confirmationEmailController = async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -58,7 +58,7 @@ export const confirmationEmail = async (
             return res.status(400).json({ message: "Token manquant" });
         }
 
-        await confirmEmail(token);
+        await confirmEmailService(token);
 
         res.status(200).json({
             message: "Adresse email confirmée avec succès",
@@ -71,16 +71,24 @@ export const confirmationEmail = async (
     }
 }
 
-export const login = async (
+export const loginController = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
         const data = loginUserSchema.parse(req.body);
-        const { user, token } = await loginUser(data);
+        const { user, accessToken, refreshToken } = await loginUserService(data);
+        
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 1000 * 60 * 60 * 24 * 60,
+        });
+        
         res.status(200).json({
-            token,
+            accessToken, // A mettre dans le header bearer avec le front
             user: {
                 username: user.username,
                 email: user.email,
@@ -88,14 +96,43 @@ export const login = async (
             },
         }); // on ne va pas renvoyer tout le User donc à vérif
     } catch (error) {
-        if (error instanceof Error) {
-            if (error.message === "EMAIL_NOT_FOUND" || error.message === "INVALID_PASSWORD" || error.message === "INACTIVE_USER") {
+        if (error instanceof Error && error.message === "INVALID_CREDENTIALS") {
                 return res.status(401).json({
                     message: "Email ou mot de passe incorrect",
-                }
-                );
-            }
+        });
         }
+        next(error);
+    }
+}
+
+export const refreshTokenController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const tokenFromClient = req.cookies?.refreshToken;
+
+        if (!tokenFromClient) {
+            return res.status(401).json({
+                message: "Session expirée, veuillez vous reconnecter",
+            });
+        }
+
+        const { accessToken } = await refreshTokenService(tokenFromClient);
+
+        return res.status(200).json({ accessToken });
+
+    } catch (error) {
+        res.clearCookie("refreshToken");
+
+        if (error instanceof Error) {
+            if ( error.message === "NO_REFRESH_TOKEN" || error.message === "INVALID_REFRESH_TOKEN") {
+                return res.status(401).json({
+                    message: "Session expirée, veuillez vous reconnecter",
+                });
+            }
+        } 
         next(error);
     }
 }

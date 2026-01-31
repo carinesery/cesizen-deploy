@@ -95,6 +95,7 @@ model User {
 
 model RefreshToken {
   idRefreshToken Int      @id @default(autoincrement())
+  jti            String   @unique
   userId         Int
   refreshToken   String   @unique
   createdAt      DateTime @default(now())
