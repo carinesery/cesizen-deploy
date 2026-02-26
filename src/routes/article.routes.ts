@@ -9,7 +9,7 @@ router.get("/", getArticles);
 
 // router.get("/:slug", getArtcileBySlug);
 router.get("/:slug", getArticle);
-router.post("/", validate(createArticleSchema), postArticle);
-router.patch("/:slug", validate(updateArticleSchema), patchArticle);
+router.post("/", validate(createArticleSchema, "body"), postArticle);
+router.patch("/:slug", validate(updateArticleSchema, "body"), patchArticle);
 
 export default router;

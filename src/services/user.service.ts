@@ -1,12 +1,24 @@
 import { prisma } from "../prismaClient.js";
-import { RegisterUserInput, LoginUserInput } from "../schemas/user.schema.js";
+import { LoginUserInput } from "../schemas/user.schema.js";
 import { sendConfirmationEmail } from "../services/mail.service.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import argon2 from "argon2";
+import { UserRoleEnum } from "../utils/enum.js";
+import { verifyJwt } from "../utils/jwt.js";
 
-export const createUserService = async (data: RegisterUserInput) => {
-    const { username, email, password, termsConsent, privacyConsent } = data;
+type CreateUser = {
+    username: string;
+    email: string;
+    password: string;
+    profilPictureUrl?: string;
+    role: UserRoleEnum,
+    termsConsent: boolean | null;
+    privacyConsent: boolean | null;
+}
+
+export const createUserService = async (data: CreateUser) => {
+    const { username, email, password, role } = data;
 
     const userExists = await prisma.user.findUnique({
         where: { email: email },
@@ -18,31 +30,22 @@ export const createUserService = async (data: RegisterUserInput) => {
     });
     if (usernameExists) { throw new Error("USERNAME_ALREADY_IN_USE") }
 
-    if (!termsConsent) {
-        throw new Error("TERMS_NOT_ACCEPTED");
-    }
-
-    if (!privacyConsent) {
-        throw new Error("PRIVACY_NOT_ACCEPTED");
-    }
-
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
     const now = new Date();
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
 
     const user = await prisma.user.create({
         data: {
-            username: data.username,
-            email: data.email,
-            passwordHash: passwordHash,
-            role: data.role ?? "USER",
+            username,
+            email,
+            passwordHash,
+            role,
             profilPictureUrl: data.profilPictureUrl,
-            termsConsentAt: now,
-            privacyConsentAt: now,
+            termsConsentAt: data.termsConsent === true ? now : null,
+            privacyConsentAt: data.privacyConsent === true ? now : null,
             isActive: false,
             createdAt: now,
-            updatedAt: null,
         }
     })
 
@@ -59,36 +62,96 @@ export const createUserService = async (data: RegisterUserInput) => {
 
     await sendConfirmationEmail(user.email, confirmUrl);
 
-    return {
-        user,
-        confirmUrl,
-    };
+    return { user };
 };
 
 export const confirmEmailService = async (token: string) => {
     // 1️⃣ Vérifier et décoder le token
-    const payload = jwt.verify(
+    const payload = verifyJwt<{idUser: number; type: string}>(
         token,
         process.env.JWT_EMAIL_SECRET!
-    ) as {
-        idUser: number;
-        type: string;
-    };
+    );
 
     // 2️⃣ Vérifier que c’est bien un token de confirmation
     if (payload.type !== "EMAIL_CONFIRMATION") {
         throw new Error("INVALID_TOKEN_TYPE");
     }
 
-    // 3️⃣ Activer le compte
+    const user = await prisma.user.findUnique({ where: { idUser: payload.idUser } });
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+     // 4️⃣ Vérifier si les CGU + privacy ont déjà été acceptées
+    const hasAcceptedLegal =
+        user.termsConsentAt !== null &&
+        user.privacyConsentAt !== null;
+
+    // 5️⃣ Mettre à jour confirmationEmailAt
+    await prisma.user.update({
+        where: { idUser: user.idUser },
+        data: {
+            confirmationEmailAt: new Date(),
+            isActive: hasAcceptedLegal
+        }
+    });
+
+    if (!hasAcceptedLegal) {
+        const legalToken = jwt.sign(
+            { idUser: user.idUser, type: "LEGAL_ACCEPT" },
+            process.env.JWT_EMAIL_SECRET!,
+            { expiresIn: "15m" }
+        );
+
+        return {
+            status: "NEEDS_LEGAL",
+            legalToken
+        };
+    }
+    
+    return {
+        status: "ACTIVATED"
+    };
+    // Attention ici car il ne faut pas qu'il y ait eu une date d'intégrée avant ... à vérif !
+    // const canActivate = user.termsConsentAt && user.privacyConsentAt ? true : false;
+
+
+    // // 3️⃣ Confirmer la création du compte
+    // await prisma.user.update({
+    //     where: { idUser: payload.idUser },
+    //     data: {
+    //         isActive: canActivate,
+    //         confirmationEmailAt: new Date(),
+    //     },
+    // });
+
+    // return {
+    //     needsTermsConsent: !canActivate,
+    //     idUser: user.idUser
+    // };
+};
+
+
+export const acceptLegalService = async (token: string) => {
+    const secret = process.env.JWT_EMAIL_SECRET;
+    if (!secret) throw new Error("JWT_EMAIL_SECRET not defined");
+
+    // Vérification du token
+    const payload = verifyJwt<{ idUser: number; type: string }>(token, secret);
+
+    if (payload.type !== "LEGAL_ACCEPT") {
+        throw new Error("INVALID_TOKEN_TYPE");
+    }
+
+    // Mise à jour de l'utilisateur
+    const now = new Date();
     await prisma.user.update({
         where: { idUser: payload.idUser },
         data: {
+            termsConsentAt: now,
+            privacyConsentAt: now,
             isActive: true,
-            confirmationEmailAt: new Date(),
         },
     });
-};
+}
 
 export const loginUserService = async (data: LoginUserInput) => {
     const { email, password } = data;
@@ -106,15 +169,15 @@ export const loginUserService = async (data: LoginUserInput) => {
     const accessToken = jwt.sign(
         { idUser: user.idUser, role: user.role },
         process.env.JWT_SECRET!,
-        { expiresIn:"5m"}
+        { expiresIn: "5m" }
     );
 
     const jti = crypto.randomUUID();
 
     const refreshTokenValue = jwt.sign(
-        { jti, type: "refresh" },
+        { jti, type: "REFRESH" },
         process.env.JWT_REFRESH_SECRET!,
-        {expiresIn: "60d"}
+        { expiresIn: "60d" }
     );
 
     const hashedRefreshToken = await argon2.hash(refreshTokenValue);
@@ -137,37 +200,43 @@ export const loginUserService = async (data: LoginUserInput) => {
 }
 
 export const refreshTokenService = async (tokenFromClient: string) => {
-  if (!tokenFromClient) throw new Error("NO_REFRESH_TOKEN");
+    if (!tokenFromClient) throw new Error("NO_REFRESH_TOKEN");
 
-  let payload: { jti: string };
+    let payload: { jti: string; type: string };
 
-  try {
-    payload = jwt.verify(tokenFromClient, process.env.JWT_REFRESH_SECRET!) as { jti: string };
-  } catch {
-    throw new Error("INVALID_REFRESH_TOKEN");
-  }
-  
-  const storedToken = await prisma.refreshToken.findUnique({
-    where: { jti: payload.jti },
-    include: { user: true },
-  });
+    try {
+        payload = verifyJwt<{ jti: string; type: string }>(
+            tokenFromClient, 
+            process.env.JWT_REFRESH_SECRET!);
+    } catch {
+        throw new Error("INVALID_REFRESH_TOKEN");
+    }
 
-  if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
-    throw new Error("INVALID_REFRESH_TOKEN");
-  }
+    if (payload.type !== "REFRESH") {
+        throw new Error("INVALID_TOKEN_TYPE");
+    }
 
-  const isValid = await argon2.verify(storedToken.refreshToken, tokenFromClient);
+    const storedToken = await prisma.refreshToken.findUnique({
+        where: { jti: payload.jti },
+        include: { user: true },
+    });
 
-  if (!isValid) throw new Error("INVALID_REFRESH_TOKEN");
+    if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+        throw new Error("INVALID_REFRESH_TOKEN");
+    }
 
-  const accessToken = jwt.sign(
-    {
-        idUser: storedToken.user.idUser,
-        role: storedToken.user.role,
-    },
-    process.env.JWT_SECRET!,
-    { expiresIn: "5m"}
-  );
+    const isValid = await argon2.verify(storedToken.refreshToken, tokenFromClient);
 
-  return { accessToken };
+    if (!isValid) throw new Error("INVALID_REFRESH_TOKEN");
+
+    const accessToken = jwt.sign(
+        {
+            idUser: storedToken.user.idUser,
+            role: storedToken.user.role,
+        },
+        process.env.JWT_SECRET!,
+        { expiresIn: "5m" }
+    );
+
+    return { accessToken };
 };

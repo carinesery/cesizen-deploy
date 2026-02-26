@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { UserRoleEnum } from "../utils/enum.js";
 
-export const registerUserSchema = z.object({
-    username: z
+export const adminRegisterSchema = z.object({
+     username: z
         .string()
         .min(3, "Le nom d'utilisateur doit faire au moins 3 caractères")
         .max(50, "Le nom d'utilisateur ne doit pas dépasser 50 caractères"),
@@ -17,22 +18,5 @@ export const registerUserSchema = z.object({
         .min(8, "Le mot de passe doit contenir au moins 8 caractères")
         .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s]).{8,50}$/, "Le mot de passe est invalide")
         .max(50, "Le mot de passe ne doit pas dépasser 50 caractères"),
-    termsConsent: z.literal(true, "Vous devez accepter les conditions"),
-    privacyConsent: z.literal(true, "Vous devez accepter la politique de confidentialité"),
-});
-
-export const confirmEmailSchema = z.object({
-    token: z.string().min(1)
-});
-
-export const loginUserSchema = z.object({
-    email: z
-        .email("L'email est invalide")
-        .max(50, "L'email ne doit pas dépasser 50 caractères"),
-    password: z
-        .string()
-        .min(1, "Le mot de passe est obligatoire"),
-});
-
-export type RegisterUserInput = z.infer<typeof registerUserSchema>;
-export type LoginUserInput = z.infer<typeof loginUserSchema>;
+    role: z.enum(UserRoleEnum)
+}); 

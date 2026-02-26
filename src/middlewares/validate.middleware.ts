@@ -2,9 +2,9 @@ import { ZodType, z } from "zod";
 import { Request, Response, NextFunction } from "express";
 
 export const validate =
-  (schema: ZodType) =>
+  (schema: ZodType, source: "body" | "query" | "params") =>
   (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req[source]);
 
     if (!result.success) {
       const treeErrors = z.treeifyError(result.error);
@@ -15,6 +15,6 @@ export const validate =
       });
     }
 
-    req.body = result.data;
+    req[source] = result.data;
     next();
   };
