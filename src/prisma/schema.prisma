@@ -80,8 +80,8 @@ model User {
   confirmationEmailAt DateTime?
   passwordHash        String    @db.VarChar(255)
   role                UserRole  @default(USER)
-  termsConsentAt      DateTime
-  privacyConsentAt    DateTime
+  termsConsentAt      DateTime?
+  privacyConsentAt    DateTime?
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime?

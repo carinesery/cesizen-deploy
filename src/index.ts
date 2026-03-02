@@ -1,16 +1,19 @@
 import express from "express";
 import articleRoutes from "./routes/article.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 
 const app = express(); 
 
 app.use(express.json());
+
 app.get("/", (req, res) =>  {
     res.send("Working")
 });
 app.use("/articles", articleRoutes);
 app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
 
 app.use(errorMiddleware);
 
