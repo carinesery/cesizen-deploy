@@ -34,5 +34,9 @@ export const loginUserSchema = z.object({
         .min(1, "Le mot de passe est obligatoire"),
 });
 
-export type RegisterUserInput = z.infer<typeof registerUserSchema>;
+export const acceptLegalSchema = z.object({
+    termsConsent: z.literal(true, "Vous devez accepter les conditions"),
+    privacyConsent: z.literal(true, "Vous devez accepter la politique de confidentialité")
+})
+
 export type LoginUserInput = z.infer<typeof loginUserSchema>;

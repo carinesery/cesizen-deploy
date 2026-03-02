@@ -9,7 +9,7 @@ dotenvConfig({ path: "../.env" }); // <- "../.env" car prisma.config.ts est dans
 export default defineConfig({
   schema: "./prisma/schema.prisma",
   migrations: {
-    path: "./prisma/migrations",
+    path: "./prisma/migrations"
   },
   datasource: {
     url: process.env["DATABASE_URL"],

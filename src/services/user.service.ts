@@ -86,10 +86,11 @@ export const confirmEmailService = async (token: string) => {
         user.privacyConsentAt !== null;
 
     // 5️⃣ Mettre à jour confirmationEmailAt
+    const now = new Date();
     await prisma.user.update({
         where: { idUser: user.idUser },
         data: {
-            confirmationEmailAt: new Date(),
+            confirmationEmailAt: now,
             isActive: hasAcceptedLegal
         }
     });

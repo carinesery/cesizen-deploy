@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
+import { ValidatedRequest } from "../middlewares/validate.middleware.js";
 import { createUserService, confirmEmailService, acceptLegalService, loginUserService, refreshTokenService } from "../services/user.service.js";
 import { loginUserSchema, registerUserSchema } from "../schemas/user.schema.js";
 import { UserRoleEnum } from "../utils/enum.js";
-import jwt from "jsonwebtoken";
 
 
 export const registerController = async (
@@ -45,12 +45,12 @@ export const registerController = async (
 }
 
 export const confirmationEmailController = async (
-    req: Request,
+    req: ValidatedRequest,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const { token } = req.query;
+        const { token } = req.validatedQuery!;
 
         if (!token || typeof token !== "string") {
             return res.status(400).json({ message: "Token manquant" });
@@ -60,7 +60,7 @@ export const confirmationEmailController = async (
 
         if (result.status === "NEEDS_LEGAL") {
             return res.status(200).json({
-                message: "Email confirmé. Vous devez accepter les conditions pour activer votre compte.",
+                message: "Email confirmé. L'utilisateur doit accepter les conditions pour activer son compte.",
                 needsTermsConsent: true,
                 legalToken: result.legalToken
             });
@@ -71,25 +71,6 @@ export const confirmationEmailController = async (
             needsTermsConsent: false
         });
 
-        // const { needsTermsConsent, idUser } = await confirmEmailService(token);
-
-        // if (needsTermsConsent) {
-        //     const legalToken = jwt.sign(
-        //         { idUser: idUser, type: "LEGAL_ACCEPT" },
-        //         process.env.JWT_EMAIL_SECRET!,
-        //         { expiresIn: "15m" }
-        //     );
-
-        //     return res.status(200).json({
-        //         message: "Email confirmé. Vous devez accepter les conditions pour activer votre compte.",
-        //         needsTermsConsent: true,
-        //         legalToken
-        //     });
-        // }
-
-        // return res.status(200).json({
-        //     message: "Adresse email confirmée avec succès. Compte activé.",
-        // });
 
     } catch (error) {
         if (error instanceof Error &&
@@ -123,6 +104,12 @@ export const acceptLegalController = async (
 
         if (scheme !== "Bearer" || !token) {
             return res.status(401).json({ message: "Format d'autorisation invalide" });
+        }
+
+        // ⚡ vérification des cases cochées
+        const { termsConsent, privacyConsent } = req.body;
+        if (!termsConsent || !privacyConsent) {
+            return res.status(400).json({ message: "Pour activer votre compte, vous devez accepter les conditions et la politique de confidentialité" });
         }
 
         await acceptLegalService(token);

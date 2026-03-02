@@ -1,9 +1,13 @@
 import { ZodType, z } from "zod";
 import { Request, Response, NextFunction } from "express";
 
+export interface ValidatedRequest<Q = any> extends Request {
+  validatedQuery?: Q;
+}
+
 export const validate =
   (schema: ZodType, source: "body" | "query" | "params") =>
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: ValidatedRequest, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req[source]);
 
     if (!result.success) {
@@ -14,7 +18,10 @@ export const validate =
         errors: treeErrors,
       });
     }
-
-    req[source] = result.data;
+     if (source === "query") {
+        req.validatedQuery = result.data;
+     } else {
+       req[source] = result.data;
+     }
     next();
   };
