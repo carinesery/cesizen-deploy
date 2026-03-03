@@ -241,3 +241,28 @@ export const refreshTokenService = async (tokenFromClient: string) => {
 
     return { accessToken };
 };
+
+export const logoutService = async (refreshTokenFromClient: string) => {
+
+    const secret = process.env.JWT_REFRESH_SECRET;
+    const payload = verifyJwt<{ jti: string; type: string }>(refreshTokenFromClient, secret!);
+
+    if (payload.type !== "REFRESH") {
+        throw new Error("INVALID_TOKEN_TYPE");
+    }
+
+    const storedToken = await prisma.refreshToken.findUnique({
+        where: { jti: payload.jti }
+    });
+
+     if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+        throw new Error("INVALID_REFRESH_TOKEN");
+    };
+
+    // Je révoque le refreshToken
+    await prisma.refreshToken.update({
+        where: { jti: payload.jti },
+        data: { revoked: true }
+        }
+    );
+}
