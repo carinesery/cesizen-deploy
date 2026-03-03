@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ValidatedRequest } from "../middlewares/validate.middleware.js";
-import { createUserService, confirmEmailService, acceptLegalService, loginUserService, refreshTokenService } from "../services/user.service.js";
+import { createUserService, confirmEmailService, acceptLegalService, loginUserService, refreshTokenService, logoutService } from "../services/user.service.js";
 import { loginUserSchema, registerUserSchema } from "../schemas/user.schema.js";
 import { UserRoleEnum } from "../utils/enum.js";
 
@@ -191,5 +191,41 @@ export const refreshTokenController = async (
             }
         }
         next(error);
+    }
+}
+
+export const logoutController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+       
+        const refreshTokenFromClient = req.cookies?.refreshToken;
+
+        if (!refreshTokenFromClient) {
+            return res.status(400).json({ message: "Refresh token manquant ou invalide" })
+        }
+
+        await logoutService(refreshTokenFromClient);
+
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production", // cookie sécurisé en prod
+            sameSite: "strict",
+        });
+        
+        return res.status(200).json({ message: "Déconnexion réussie" })
+
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.message === "INVALID_TOKEN_TYPE" || error.message === "INVALID_REFRESH_TOKEN") {
+                return res.status(401).json({
+                    message: "Session expirée, veuillez vous reconnecter",
+                });
+            }
+            next(error);
+        }
+
     }
 }
