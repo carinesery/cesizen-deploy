@@ -111,23 +111,6 @@ export const confirmEmailService = async (token: string) => {
     return {
         status: "ACTIVATED"
     };
-    // Attention ici car il ne faut pas qu'il y ait eu une date d'intégrée avant ... à vérif !
-    // const canActivate = user.termsConsentAt && user.privacyConsentAt ? true : false;
-
-
-    // // 3️⃣ Confirmer la création du compte
-    // await prisma.user.update({
-    //     where: { idUser: payload.idUser },
-    //     data: {
-    //         isActive: canActivate,
-    //         confirmationEmailAt: new Date(),
-    //     },
-    // });
-
-    // return {
-    //     needsTermsConsent: !canActivate,
-    //     idUser: user.idUser
-    // };
 };
 
 
