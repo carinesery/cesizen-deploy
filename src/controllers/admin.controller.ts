@@ -27,13 +27,13 @@ export const adminCreateUserController = async (
     } catch (error) {
          if (error instanceof Error &&
             error.message === "USER_ALREADY_EXISTS") {
-            return res.status(400).json({
+            return res.status(409).json({
                 message: "Cet email existe déjà",
             });
         }
         if (error instanceof Error &&
             error.message === "USERNAME_ALREADY_IN_USE") {
-            return res.status(400).json({
+            return res.status(409).json({
                 message: "Ce nom d'utilisateur est déjà utilisé",
             });
         }

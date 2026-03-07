@@ -30,13 +30,13 @@ export const registerController = async (
     } catch (error) {
         if (error instanceof Error &&
             error.message === "USER_ALREADY_EXISTS") {
-            return res.status(400).json({
+            return res.status(409).json({
                 message: "Cet email existe déjà",
             });
         }
         if (error instanceof Error &&
             error.message === "USERNAME_ALREADY_IN_USE") {
-            return res.status(400).json({
+            return res.status(409).json({
                 message: "Ce nom d'utilisateur est déjà utilisé",
             });
         }
@@ -151,7 +151,7 @@ export const loginController = async (
                 email: user.email,
                 role: user.role,
             },
-        }); // on ne va pas renvoyer tout le User donc à vérif
+        });
     } catch (error) {
         if (error instanceof Error && error.message === "INVALID_CREDENTIALS") {
             return res.status(401).json({
