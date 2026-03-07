@@ -8,7 +8,7 @@ export const getArticles = async (
 ) => {
     try {
         const articles = await getPublicArticles();
-        res.status(200).json(articles);
+        return res.status(200).json(articles);
     } catch (error) {
         next(error);
     }
@@ -23,7 +23,7 @@ export const getArticle = async (
 
     try {
         const article = await readArticle(slug);
-        res.status(200).json(article);
+        return res.status(200).json(article);
     } catch (error) {
         if (error instanceof Error &&
             error.message === "ARTICLE_NOT_FOUND") {
@@ -42,7 +42,7 @@ export const postArticle = async (
 ) => {
     try {
         const article = await createArticle(req.body);
-        res.status(201).json(article);
+        return res.status(201).json(article);
     } catch (error) {
         if (error instanceof Error &&
             error.message === "ARTICLE_SLUG_ALREADY_EXISTS") {
@@ -63,7 +63,7 @@ export const patchArticle = async (
 
     try {
         const article = await updateArticle(slug, req.body);
-        res.status(200).json(article);
+        return res.status(200).json(article);
     } catch (error) { // quelles sont les erreurs qui peuvent survenir au moment de l'enregistrement: slug déjà utilisé (409=conflit), article introuvable (404), données invalides (bad request) et pb serveur (500Z)
         if (error instanceof Error &&
             error.message === "ARTICLE_NOT_FOUND") {
