@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { createUserService, confirmEmailService, loginUserService, refreshTokenService } from "../services/user.service.js";
+import { createUserService } from "../services/user.service.js";
 import { adminRegisterSchema } from "../schemas/admin.schema.js";
-import { getAllUsersService } from "../services/admin.service.js";
+import { getAllUsersService, getUserService } from "../services/admin.service.js";
 
 export const getAllUsersController = async (
     req: Request,
@@ -12,10 +12,37 @@ export const getAllUsersController = async (
         const users = await getAllUsersService();
         return res.status(200).json(users);
 
-    } catch(error) {
+    } catch (error) {
         next(error);
-   }
+    }
 }
+
+export const getUserController = async (
+    req: Request<{ idUser: string }>,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+
+        const idUser = parseInt(req.params.idUser, 10);
+
+        if (isNaN(idUser)) {
+            return res.status(400).json({ message: "idUser invalide" });
+        }
+
+        const user = await getUserService(idUser);
+
+        return res.status(200).json(user);
+
+    } catch (error) {
+        if ((error instanceof Error && error.message === "USER_NOT_FOUND")) {
+            return res.status(404).json({ message: "Utilisateur introuvable" })
+        }
+
+        next(error);
+    }
+
+};
 
 export const adminCreateUserController = async (
     req: Request,

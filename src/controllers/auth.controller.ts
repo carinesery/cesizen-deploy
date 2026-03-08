@@ -145,7 +145,7 @@ export const loginController = async (
         });
 
         return res.status(200).json({
-            accessToken, // A mettre dans le header bearer avec le front
+            accessToken,
             user: {
                 username: user.username,
                 email: user.email,
