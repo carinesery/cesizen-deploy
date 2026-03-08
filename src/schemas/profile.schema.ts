@@ -14,7 +14,10 @@ export const updatedProfileUserSchema = z.object({
         .email()
         .max(255, "L'email ne doit pas dépasser 255 caractères")
         .optional(),
-});
+}).refine(
+    data => Object.keys(data).length > 0,
+    { message: "Au moins un champ doit être modifié" }
+);
 
 export type UpdatedProfileUserInput = z.infer<typeof updatedProfileUserSchema>;
 

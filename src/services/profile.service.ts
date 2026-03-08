@@ -3,6 +3,7 @@ import { UpdatedPasswordInput, UpdatedProfileUserInput } from "../schemas/profil
 import jwt from "jsonwebtoken";
 import { sendConfirmationEmail } from "./mail.service.js";
 import bcrypt from "bcrypt";
+import { UserRoleEnum } from "../utils/enum.js";
 
 export const getProfileService = async (idUser: number) => {
 
@@ -12,30 +13,54 @@ export const getProfileService = async (idUser: number) => {
             select: {
                 username: true,
                 email: true,
-                profilPictureUrl: true
+                profilPictureUrl: true,
+                isActive: true,
+                deletedAt: true,
             }
         }
     )
 
-    if (!user) {
+    if (!user || user.deletedAt) {
         throw new Error('USER_NOT_FOUND')
     }
 
-    return user;
+    if (!user.isActive) {
+        throw new Error("ACCOUNT_INACTIVE");
+    }
+
+    const userProfile = {
+        username: user.username,
+        email: user.email,
+        profilPictureUrl: user.profilPictureUrl
+    }
+
+    return userProfile;
 
 }
 
-export const updateProfileService = async (idUser: number, data: UpdatedProfileUserInput) => {
+export type UpdateUser = {
+    username?: string;
+    email?: string;
+    profilPictureUrl?: string;
+    role?: UserRoleEnum,
+}
+
+
+export const updateUserService = async (idUser: number, data: UpdateUser, idAdmin?: number) => {
 
     const user = await prisma.user.findUnique(
         { where: { idUser: idUser } }
     );
 
-    if (!user) {
+    if (!user || user.deletedAt) {
         throw new Error('USER_NOT_FOUND')
     }
 
-    const updatedData: Partial<UpdatedProfileUserInput> & { isActive?: boolean } = {};
+    if (!user.isActive) {
+        throw new Error("ACCOUNT_INACTIVE");
+    }
+
+    const updatedData: Partial<UpdateUser> & { isActive?: boolean } = {};
     let emailChanged = false;
 
     // Vérifier la contrainte d'unicité de lu nom d'utilisateur
@@ -62,10 +87,24 @@ export const updateProfileService = async (idUser: number, data: UpdatedProfileU
         }
     }
 
+    // Mise à jour du rôle + empêche un admin de modifier son propre rôle par mégarde
+    if (data.role && data.role !== user.role) {
+        if (!idAdmin) {
+            throw new Error("ADMIN_REQUIRED_TO_CHANGE_ROLE");
+        }
+
+        if (user.idUser === idAdmin) {
+            throw new Error("CANNOT_CHANGE_SELF_ROLE");
+        }
+
+        updatedData.role = data.role;
+    }
     // Mise à jour de l'image de profil : 
     if (data.profilPictureUrl) {
         updatedData.profilPictureUrl = data.profilPictureUrl;
     }
+
+
 
     if (Object.keys(updatedData).length === 0) {
         throw new Error("NO_DATA_TO_UPDATE");
@@ -102,7 +141,8 @@ export const updateProfileService = async (idUser: number, data: UpdatedProfileU
             username: updatedUser.username,
             email: updatedUser.email,
             profilPictureUrl: updatedUser.profilPictureUrl,
-            isActive: updatedUser.isActive
+            isActive: updatedUser.isActive,
+            role: updatedUser.role
         },
         emailChanged
     };
@@ -115,8 +155,12 @@ export const updatePasswordService = async (idUser: number, data: UpdatedPasswor
         where: { idUser }
     })
 
-    if (!user) {
+    if (!user || user.deletedAt) {
         throw new Error("USER_NOT_FOUND");
+    }
+
+    if (!user.isActive) {
+        throw new Error("ACCOUNT_INACTIVE");
     }
 
     const passwordMatch = await bcrypt.compare(
