@@ -142,7 +142,7 @@ export const loginUserService = async (data: LoginUserInput) => {
 
     const user = await prisma.user.findUnique({ where: { email: email } });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || user.deletedAt) {
         throw new Error("INVALID_CREDENTIALS")
     };
 

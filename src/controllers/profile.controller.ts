@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { getProfileService } from "../services/profile.service.js";
-import { updateUserService, updatePasswordService } from "../services/profile.service.js";
+import { updateUserService, updatePasswordService, deleteAccountService } from "../services/profile.service.js";
 import { UpdatedProfileUserInput, UpdatedPasswordInput } from "../schemas/profile.schema.js";
 
 export const getProfileController = async (
@@ -124,4 +124,30 @@ export const updatePasswordController = async (
 
         next(error);
     }
+}
+
+export const deleteAccountController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+
+    try {
+        const idUser = req.user!.idUser;
+
+        await deleteAccountService(idUser);
+
+        return res.status(200).json({ message: "Votre compte a été désactivé. Vous allez être déconnecté dans quelques instants"})
+
+    } catch(error) {
+         if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+            return res.status(404).json({ message: "Aucun utilisateur trouvé" })
+        }
+        if (error instanceof Error && error.message === "ACCOUNT_INACTIVE") {
+            return res.status(403).json({ message: "Compte inactif. Aucune action possible" })
+        }
+
+        next(error);
+    }
+
 }
