@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { getProfileService } from "../services/profile.service.js";
-import { updateProfileService, updatePasswordService } from "../services/profile.service.js";
+import { updateUserService, updatePasswordService } from "../services/profile.service.js";
 import { UpdatedProfileUserInput, UpdatedPasswordInput } from "../schemas/profile.schema.js";
 
 export const getProfileController = async (
@@ -12,19 +12,22 @@ export const getProfileController = async (
     try {
         const { idUser } = req.user!;
 
-        const user = await getProfileService(idUser);
+        const userProfile = await getProfileService(idUser);
 
         res.status(200).json({
             data: {
-                username: user.username,
-                email: user.email,
-                profilPictureUrl: user.profilPictureUrl
+                username: userProfile.username,
+                email: userProfile.email,
+                profilPictureUrl: userProfile.profilPictureUrl
             }
         })
 
     } catch (error) {
         if (error instanceof Error && error.message === "USER_NOT_FOUND") {
-            return res.status(404).json({ message: "Aucun utilisateur trouvé" }) // Je ne suis pas sûre que ce soit safe ? Et est ce que c'est le bon statut ? 
+            return res.status(404).json({ message: "Aucun utilisateur trouvé" })
+        }
+        if (error instanceof Error && error.message === "ACCOUNT_INACTIVE") {
+            return res.status(403).json({ message: "Compte inactif. Aucune lecture possible" })
         }
         next(error);
     }
@@ -41,7 +44,7 @@ export const updateProfileController = async (
 
         const data: UpdatedProfileUserInput = req.body;
 
-        const { user, emailChanged } = await updateProfileService(idUser, data);
+        const { user, emailChanged } = await updateUserService(idUser, data);
 
         return res.status(200).json({
             message: emailChanged
@@ -54,11 +57,20 @@ export const updateProfileController = async (
             if (error.message === "USER_NOT_FOUND") {
                 return res.status(404).json({ message: "Aucun utilisateur trouvé" })
             }
+            if (error.message === "ACCOUNT_INACTIVE") {
+                return res.status(403).json({ message: "Compte inactif. Aucune modification possible" })
+            }
             if (error.message === "USERNAME_ALREADY_USED") {
                 return res.status(409).json({ message: "Ce nom d'utilisateur est déjà utilisé" })
             }
             if (error.message === "EMAIL_ALREADY_USED") {
                 return res.status(409).json({ message: "Cet email est déjà utilisé" })
+            }
+            if (error.message === "ADMIN_REQUIRED_TO_CHANGE_ROLE") {
+                return res.status(403).json({ message: "Seul un administrateur est autorisé à modifier le rôle" })
+            }
+            if (error.message === "CANNOT_CHANGE_SELF_ROLE") {
+                return res.status(403).json({ message: "Vous ne pouvez pas modifier votre propre role" })
             }
             if (error.message === "NO_DATA_TO_UPDATE") {
                 return res.status(400).json({ message: "Aucune modification détectée" })
@@ -92,6 +104,9 @@ export const updatePasswordController = async (
                 return res.status(404).json({
                     message: "Utilisateur introuvable"
                 });
+            }
+            if (error.message === "ACCOUNT_INACTIVE") {
+                return res.status(403).json({ message: "Compte inactif. Aucune modification possible" })
             }
 
             if (error.message === "INVALID_PASSWORD") {
