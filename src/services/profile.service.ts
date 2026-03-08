@@ -203,3 +203,37 @@ export const updatePasswordService = async (idUser: number, data: UpdatedPasswor
 
     return true;
 }
+
+export const deleteAccountService = async (idUser:number) => {
+
+    const user = await prisma.user.findUnique({
+        where: {idUser: idUser}
+    })
+
+    if(!user || user.deletedAt) {
+        throw new Error("USER_NOT_FOUND")
+    } 
+
+    if(!user.isActive) {
+        throw new Error("ACCOUNT_INACTIVE")
+    }
+
+    await prisma.user.update({
+        where: {idUser: idUser},
+        data: {
+            isActive: false,
+            deletedAt: new Date()
+        }
+    })
+
+    await prisma.refreshToken.updateMany({
+        where: {
+            userId: idUser,
+            revoked: false
+        },
+        data: {
+            revoked: true
+        }
+    });
+
+}
