@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { getProfileService } from "../services/profile.service.js";
-import { updateProfileService } from "../services/profile.service.js";
-import { UpdatedProfileUserInput } from "../schemas/profile.schema.js";
+import { updateProfileService, updatePasswordService } from "../services/profile.service.js";
+import { UpdatedProfileUserInput, UpdatedPasswordInput } from "../schemas/profile.schema.js";
 
 export const getProfileController = async (
     req: AuthRequest,
@@ -64,6 +64,49 @@ export const updateProfileController = async (
                 return res.status(400).json({ message: "Aucune modification détectée" })
             }
         }
+        next(error);
+    }
+}
+
+export const updatePasswordController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { idUser } = req.user!;
+        const data: UpdatedPasswordInput = req.body;
+
+        await updatePasswordService(idUser, data);
+
+        return res.status(200).json({
+            message: "Mot de passe mis à jour avec succès. Vous devrez vous reconnecter.",
+            forceLogout: true
+        }); // Le front-end devra supprimer l'accesstoken et rediriger vers la page de connexion.
+
+    } catch (error) {
+
+        if (error instanceof Error) {
+
+            if (error.message === "USER_NOT_FOUND") {
+                return res.status(404).json({
+                    message: "Utilisateur introuvable"
+                });
+            }
+
+            if (error.message === "INVALID_PASSWORD") {
+                return res.status(401).json({
+                    message: "Mot de passe actuel incorrect"
+                });
+            }
+
+            if (error.message === "PASSWORD_IDENTICAL") {
+                return res.status(400).json({
+                    message: "Le nouveau mot de passe doit être différent"
+                });
+            }
+        }
+
         next(error);
     }
 }

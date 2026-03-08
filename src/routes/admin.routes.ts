@@ -10,7 +10,6 @@ import { UserRoleEnum } from "../utils/enum.js";
 const router = Router();
 
 router.post("/user", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), validate(adminRegisterSchema, "body"), adminCreateUserController);
-// router.post("/user", validate(adminRegisterSchema, "body"), adminCreateUserController);
 router.get("/test", (req, res) => {
   res.send("ADMIN ROUTE OK");
 });

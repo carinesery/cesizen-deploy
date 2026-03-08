@@ -1,8 +1,8 @@
 import { prisma } from "../prismaClient.js";
-import { UpdatedProfileUserInput } from "../schemas/profile.schema.js";
+import { UpdatedPasswordInput, UpdatedProfileUserInput } from "../schemas/profile.schema.js";
 import jwt from "jsonwebtoken";
 import { sendConfirmationEmail } from "./mail.service.js";
-import { email } from "zod/mini";
+import bcrypt from "bcrypt";
 
 export const getProfileService = async (idUser: number) => {
 
@@ -35,7 +35,7 @@ export const updateProfileService = async (idUser: number, data: UpdatedProfileU
         throw new Error('USER_NOT_FOUND')
     }
 
-    const updatedData:  Partial<UpdatedProfileUserInput> & { isActive?: boolean } = {};
+    const updatedData: Partial<UpdatedProfileUserInput> & { isActive?: boolean } = {};
     let emailChanged = false;
 
     // Vérifier la contrainte d'unicité de lu nom d'utilisateur
@@ -106,4 +106,56 @@ export const updateProfileService = async (idUser: number, data: UpdatedProfileU
         },
         emailChanged
     };
+}
+
+export const updatePasswordService = async (idUser: number, data: UpdatedPasswordInput) => {
+
+    //vérif user et trouver le user ?
+    const user = await prisma.user.findUnique({
+        where: { idUser }
+    })
+
+    if (!user) {
+        throw new Error("USER_NOT_FOUND");
+    }
+
+    const passwordMatch = await bcrypt.compare(
+        data.currentPassword,
+        user.passwordHash
+    );
+
+    if (!passwordMatch) {
+        throw new Error("INVALID_PASSWORD");
+    }
+
+    const isSamePassword = await bcrypt.compare(
+        data.newPassword,
+        user.passwordHash
+    );
+
+    if (isSamePassword) {
+        throw new Error("PASSWORD_IDENTICAL");
+    }
+
+    const hashedPassword = await bcrypt.hash(data.newPassword, 10);
+
+    await prisma.user.update({
+        where: { idUser },
+        data: {
+            passwordHash: hashedPassword,
+            updatedAt: new Date()
+        }
+    });
+
+    await prisma.refreshToken.updateMany({
+        where: {
+            userId: idUser,
+            revoked: false
+        },
+        data: {
+            revoked: true
+        }
+    });
+
+    return true;
 }
