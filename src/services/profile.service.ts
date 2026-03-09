@@ -222,7 +222,7 @@ export const deleteAccountService = async (idUser:number) => {
         where: {idUser: idUser},
         data: {
             isActive: false,
-            deletedAt: new Date()
+            disabledAt: new Date()
         }
     })
 
@@ -235,5 +235,4 @@ export const deleteAccountService = async (idUser:number) => {
             revoked: true
         }
     });
-
 }
