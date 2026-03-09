@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { createUserService } from "../services/user.service.js";
 import { updateUserService, UpdateUser } from "../services/profile.service.js";
 import { adminRegisterSchema, UserStatusInput } from "../schemas/admin.schema.js";
-import { getAllUsersService, getUserService, setUserActiveStatusService } from "../services/admin.service.js";
+import { getAllUsersService, getUserService, setUserActiveStatusService, deleteUserService } from "../services/admin.service.js";
 import { UserRoleEnum } from "../utils/enum.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 
@@ -157,8 +157,42 @@ export const setUserActiveStatusController = async (
             return res.status(404).json({ message: "Utilisateur introuvable" });
         }
         if (error instanceof Error && error.message === "CANNOT_CHANGE_SELF_STATUS") {
-                return res.status(403).json({ message: "Impossible de changer le statut de votre propre compte" })
-            }
+            return res.status(403).json({ message: "Impossible de changer le statut de votre propre compte" })
+        }
         next(error);
     }
 };
+
+export const deleteUserController = async (
+    req: Request<{ idUser: string }> & { user?: { idUser: number; role: UserRoleEnum } },
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+
+        const idUser = parseInt(req.params.idUser, 10);
+
+        const idAdmin = req.user!.idUser;
+
+        if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
+
+        await deleteUserService(idUser, idAdmin);
+        
+        return res.status(200).json({ message: "Compte anonymisé avec succès" });
+
+    } catch (error) {
+        if(error instanceof Error) {
+            if(error.message === "USER_NOT_FOUND") {
+                 return res.status(404).json({ message: "Utilisateur introuvable" });
+            }
+             if(error.message === "ADMIN_REQUIRED_TO_DELETE_ACCOUNT") {
+                  return res.status(401).json({ message: "Admin requis pour cette action" });
+            }
+             if(error.message === "CANNOT_DELETE_SELF_ACCOUNT") {
+                 return res.status(400).json({ message: "Vous ne pouvez pas supprimer votre propre compte" });
+            }
+        }
+        next(error);
+    }
+}
+
