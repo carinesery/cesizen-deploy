@@ -67,7 +67,7 @@ export const createUserService = async (data: CreateUser) => {
 
 export const confirmEmailService = async (token: string) => {
     // 1️⃣ Vérifier et décoder le token
-    const payload = verifyJwt<{idUser: number; type: string}>(
+    const payload = verifyJwt<{ idUser: number; type: string }>(
         token,
         process.env.JWT_EMAIL_SECRET!
     );
@@ -80,7 +80,7 @@ export const confirmEmailService = async (token: string) => {
     const user = await prisma.user.findUnique({ where: { idUser: payload.idUser } });
     if (!user) throw new Error("USER_NOT_FOUND");
 
-     // 4️⃣ Vérifier si les CGU + privacy ont déjà été acceptées
+    // 4️⃣ Vérifier si les CGU + privacy ont déjà été acceptées
     const hasAcceptedLegal =
         user.termsConsentAt !== null &&
         user.privacyConsentAt !== null;
@@ -107,7 +107,7 @@ export const confirmEmailService = async (token: string) => {
             legalToken
         };
     }
-    
+
     return {
         status: "ACTIVATED"
     };
@@ -190,7 +190,7 @@ export const refreshTokenService = async (tokenFromClient: string) => {
 
     try {
         payload = verifyJwt<{ jti: string; type: string }>(
-            tokenFromClient, 
+            tokenFromClient,
             process.env.JWT_REFRESH_SECRET!);
     } catch {
         throw new Error("INVALID_REFRESH_TOKEN");
@@ -205,8 +205,16 @@ export const refreshTokenService = async (tokenFromClient: string) => {
         include: { user: true },
     });
 
-    if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+    if(!storedToken || !storedToken.user) {
+         throw new Error("INVALID_REFRESH_TOKEN");
+    }
+
+    if (storedToken.revoked || storedToken.expiresAt < new Date()) {
         throw new Error("INVALID_REFRESH_TOKEN");
+    }
+
+    if (!storedToken.user.isActive || storedToken.user.deletedAt) {
+        throw new Error("ACCOUNT_DISABLED");
     }
 
     const isValid = await argon2.verify(storedToken.refreshToken, tokenFromClient);
@@ -238,7 +246,7 @@ export const logoutService = async (refreshTokenFromClient: string) => {
         where: { jti: payload.jti }
     });
 
-     if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+    if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
         throw new Error("INVALID_REFRESH_TOKEN");
     };
 
@@ -246,6 +254,6 @@ export const logoutService = async (refreshTokenFromClient: string) => {
     await prisma.refreshToken.update({
         where: { jti: payload.jti },
         data: { revoked: true }
-        }
+    }
     );
 }

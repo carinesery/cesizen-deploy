@@ -1,3 +1,4 @@
+import { prisma } from "../prismaClient.js";
 import { Request, Response, NextFunction } from "express";
 import { verifyJwt } from "../utils/jwt.js";
 import { UserRoleEnum } from "../utils/enum.js";
@@ -9,7 +10,7 @@ export interface AuthRequest extends Request {
     };
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
     req: AuthRequest,
     res: Response,
     next: NextFunction
@@ -30,6 +31,24 @@ export const authMiddleware = (
             token,
             process.env.JWT_SECRET!
         );
+
+        // A vérifier :
+         const user = await prisma.user.findUnique({
+            where: { idUser: payload.idUser },
+            select: {
+                idUser: true,
+                role: true,
+                isActive: true,
+                deletedAt: true
+            }
+        });
+
+         if (!user || !user.isActive || user.deletedAt) {
+            return res.status(403).json({
+                message: "Compte désactivé"
+            });
+        }
+        // Jusqu'ici !
 
         req.user = {
             idUser: payload.idUser,

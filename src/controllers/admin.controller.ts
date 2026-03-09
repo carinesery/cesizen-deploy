@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { createUserService } from "../services/user.service.js";
 import { updateUserService, UpdateUser } from "../services/profile.service.js";
-import { adminRegisterSchema } from "../schemas/admin.schema.js";
-import { getAllUsersService, getUserService } from "../services/admin.service.js";
+import { adminRegisterSchema, UserStatusInput } from "../schemas/admin.schema.js";
+import { getAllUsersService, getUserService, setUserActiveStatusService } from "../services/admin.service.js";
 import { UserRoleEnum } from "../utils/enum.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 
@@ -86,7 +86,7 @@ export const adminCreateUserController = async (
 }
 
 export const updateUserController = async (
-    req: Request<{ idUser: string }, any, UpdateUser> & { user?: {idUser: number; role: UserRoleEnum }},
+    req: Request<{ idUser: string }, any, UpdateUser> & { user?: { idUser: number; role: UserRoleEnum } },
     res: Response,
     next: NextFunction
 ) => {
@@ -98,10 +98,10 @@ export const updateUserController = async (
             return res.status(400).json({ message: "idUser invalide" });
         }
 
-        // A verif ? 
         const data: UpdateUser = req.body;
 
         const idAdmin = req.user!.idUser;
+        if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
 
         const userProfile = await updateUserService(idUser, data, idAdmin);
 
@@ -121,7 +121,7 @@ export const updateUserController = async (
             if (error.message === "EMAIL_ALREADY_USED") {
                 return res.status(409).json({ message: "Cet email est déjà utilisé" })
             }
-             if (error.message === "ADMIN_REQUIRED_TO_CHANGE_ROLE") {
+            if (error.message === "ADMIN_REQUIRED_TO_CHANGE_ROLE") {
                 return res.status(403).json({ message: "Seul un administrateur est autorisé à modifier le rôle" })
             }
             if (error.message === "CANNOT_CHANGE_SELF_ROLE") {
@@ -134,3 +134,31 @@ export const updateUserController = async (
         next(error);
     }
 }
+
+export const setUserActiveStatusController = async (
+    req: Request<{ idUser: string }> & { user?: { idUser: number; role: UserRoleEnum } },
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const idUser = parseInt(req.params.idUser, 10);
+        const data: UserStatusInput = req.body;
+
+        const idAdmin = req.user!.idUser;
+        if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
+
+        await setUserActiveStatusService(idUser, data, idAdmin);
+
+
+        const action = data.isActive ? "réactivé" : "désactivé";
+        return res.status(200).json({ message: `Utilisateur ${action} avec succès` });
+    } catch (error) {
+        if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+            return res.status(404).json({ message: "Utilisateur introuvable" });
+        }
+        if (error instanceof Error && error.message === "CANNOT_CHANGE_SELF_STATUS") {
+                return res.status(403).json({ message: "Impossible de changer le statut de votre propre compte" })
+            }
+        next(error);
+    }
+};

@@ -184,6 +184,12 @@ export const refreshTokenController = async (
         res.clearCookie("refreshToken");
 
         if (error instanceof Error) {
+            if (error.message === "ACCOUNT_DISABLED") {
+                return res.status(403).json({
+                    message: "Votre compte est désactivé"
+                });
+            }
+
             if (error.message === "NO_REFRESH_TOKEN" || error.message === "INVALID_REFRESH_TOKEN") {
                 return res.status(401).json({
                     message: "Session expirée, veuillez vous reconnecter",
@@ -200,11 +206,11 @@ export const logoutController = async (
     next: NextFunction
 ) => {
     try {
-       
+
         const refreshTokenFromClient = req.cookies?.refreshToken;
 
         if (!refreshTokenFromClient) {
-            return res.status(400).json({ message: "Refresh token manquant ou invalide" })
+            return res.status(401).json({ message: "Refresh token manquant ou invalide" })
         }
 
         await logoutService(refreshTokenFromClient);
@@ -214,10 +220,12 @@ export const logoutController = async (
             secure: process.env.NODE_ENV === "production", // cookie sécurisé en prod
             sameSite: "strict",
         });
-        
+
         return res.status(200).json({ message: "Déconnexion réussie" })
 
     } catch (error) {
+         res.clearCookie("refreshToken");
+         
         if (error instanceof Error) {
             if (error.message === "INVALID_TOKEN_TYPE" || error.message === "INVALID_REFRESH_TOKEN") {
                 return res.status(401).json({
