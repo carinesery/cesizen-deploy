@@ -99,3 +99,47 @@ export const setUserActiveStatusService = async (
     }
 
 };
+
+export const deleteUserService = async (idUser: number, idAdmin: number) => {
+
+    const user = await prisma.user.findUnique({
+        where: { idUser },
+    })
+
+    if (!user) {
+        throw new Error("USER_NOT_FOUND")
+    }
+
+    if (!idAdmin) {
+        throw new Error("ADMIN_REQUIRED_TO_DELETE_ACCOUNT");
+    }
+
+    if (idUser === idAdmin) {
+        throw new Error("CANNOT_DELETE_SELF_ACCOUNT")
+    }
+
+    const anonymizedUsername = `deleted_user_${idUser}`;
+    const anonymizedEmail = `deleted_${idUser}@deleted.local`;
+
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { idUser },
+            data: {
+                username: anonymizedUsername,
+                email: anonymizedEmail,
+                profilPictureUrl: null,
+                confirmationEmailAt: null,
+                passwordHash: "",
+                isActive: false,
+                deletedAt: new Date(),
+                disabledAt: new Date(),
+                termsConsentAt: null,
+                privacyConsentAt: null
+            }
+        }),
+        prisma.refreshToken.updateMany({
+            where: {userId: idUser, revoked: false },
+            data: {revoked: true }
+        })
+    ])
+}
