@@ -40,3 +40,9 @@ export const adminUpdateUserSchema = z.object({
     data => Object.keys(data).length > 0,
     { message: "Au moins un champ doit être modifié" }
 );
+
+export const userStatusSchema = z.object({
+    isActive: z.boolean()
+})
+
+export type UserStatusInput = z.infer<typeof userStatusSchema>;
