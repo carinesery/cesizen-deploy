@@ -32,7 +32,6 @@ export const authMiddleware = async (
             process.env.JWT_SECRET!
         );
 
-        // A vérifier :
          const user = await prisma.user.findUnique({
             where: { idUser: payload.idUser },
             select: {
@@ -48,7 +47,6 @@ export const authMiddleware = async (
                 message: "Compte désactivé"
             });
         }
-        // Jusqu'ici !
 
         req.user = {
             idUser: payload.idUser,
