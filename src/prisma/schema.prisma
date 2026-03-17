@@ -117,12 +117,12 @@ enum EmotionLevel {
 }
 
 model Emotion {
-  idEmotion       Int          @id @default(autoincrement())
+  idEmotion       String       @id @default(cuid())
   title           String       @unique @db.VarChar(50)
   description     String?      @db.Text
   iconUrl         String?      @db.VarChar(255)
   level           EmotionLevel
-  parentEmotionId Int?
+  parentEmotionId String?
 
   // Relations
   parentEmotion Emotion?    @relation("emotionHierarchy", fields: [parentEmotionId], references: [idEmotion])
@@ -132,15 +132,16 @@ model Emotion {
 }
 
 model MoodEntry {
-  idMoodEntry            Int       @id @default(autoincrement())
+  idMoodEntry            String    @id @default(cuid())
   emotionDate            DateTime  @default(now())
   parentEmotionIntensity Int       @default(5) // Validation au niveau applicatif
   comment                String?   @db.Text
   createdAt              DateTime  @default(now())
   updatedAt              DateTime?
+  deletedAt              DateTime?
   userId                 Int
-  emotionId              Int
-  feelingId              Int?
+  emotionId              String
+  feelingId              String?
 
   // Relations
   user    User     @relation("userMoodEntries", fields: [userId], references: [idUser])
