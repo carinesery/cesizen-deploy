@@ -1,14 +1,19 @@
 import { prisma } from "../prismaClient.js";
-import { createEmotionInput } from "../schemas/emotion.schema.js";
+import { CreateEmotionInput, UpdateEmotionBodyInput } from "../schemas/emotion.schema.js";
 import { LevelEmotionEnum } from "../utils/enum.js";
 
 export const getAllEmotionsService = async () => {
 
     const emotions = await prisma.emotion.findMany({
-        where: { level: LevelEmotionEnum.LEVEL_1 },
+        where: {
+            level: LevelEmotionEnum.LEVEL_1,
+            deletedAt: null
+        },
         orderBy: { title: "asc" },
         include: {
-            childEmotions: true
+            childEmotions: {
+                where: { deletedAt: null }
+            }
         }
     });
 
@@ -16,29 +21,31 @@ export const getAllEmotionsService = async () => {
         throw new Error("LIST_OF_EMOTIONS_DOES_NOT_EXIST")
     }
 
-    // là je pense qu'il faudrait mapper sur la liste des émotions pour faire apparaitre dans l'ordre de rattachement à l'émotion parent non ?
-
     return emotions;
 }
 
-export const getEmotionService = async (id: string) => {
+export const getEmotionService = async (id: string) => { // Je ne comprends pas ici
 
     const emotion = await prisma.emotion.findUnique({
         where: { idEmotion: id },
         include: {
-            childEmotions: true,
+            childEmotions: { where: { deletedAt: null } },
             parentEmotion: true
         }
     })
 
-    if (!emotion) {
+    if (!emotion || emotion.deletedAt) {
         throw new Error("EMOTION_NOT_FOUND")
     };
+
+    if (emotion.parentEmotion?.deletedAt) {
+        throw new Error("DATA_INCONSISTENCY_PARENT_DELETED");
+    }
 
     return emotion;
 }
 
-export const createEmotionService = async (data: createEmotionInput) => {
+export const createEmotionService = async (data: CreateEmotionInput) => {
 
     if (data.parentEmotionId && data.level === LevelEmotionEnum.LEVEL_1) {
         throw new Error("LEVEL_1_CANNOT_HAVE_PARENT")
@@ -50,16 +57,21 @@ export const createEmotionService = async (data: createEmotionInput) => {
 
     if (data.parentEmotionId) {
         const parentExists = await prisma.emotion.findUnique({
-            where: { idEmotion: data.parentEmotionId }
+            where: {
+                idEmotion: data.parentEmotionId,
+            }
         });
 
-        if (!parentExists) {
+        if (!parentExists || parentExists.deletedAt) {
             throw new Error("PARENT_EMOTION_NOT_FOUND");
         }
     }
 
-    const emotionExists = await prisma.emotion.findUnique({
-        where: { title: data.title }
+    const emotionExists = await prisma.emotion.findFirst({
+        where: {
+            title: data.title,
+            deletedAt: null
+        }
     })
 
     if (emotionExists) {
@@ -77,5 +89,88 @@ export const createEmotionService = async (data: createEmotionInput) => {
     })
 
     return emotionStored;
+}
 
+export const updateEmotionService = async (id: string, data: UpdateEmotionBodyInput) => {
+
+    const existingEmotion = await prisma.emotion.findUnique({
+        where: { idEmotion: id },
+        include: {
+            childEmotions: { where: { deletedAt: null } },
+        }
+    })
+
+    if (!existingEmotion || existingEmotion.deletedAt) {
+        throw new Error("EMOTION_NOT_FOUND")
+    };
+
+    const finalLevel = data.level ?? existingEmotion.level;
+
+    const finalParent = data.parentEmotionId !== undefined
+        ? data.parentEmotionId
+        : existingEmotion.parentEmotionId;
+
+    if (finalParent) {
+        const parent = await prisma.emotion.findUnique({
+            where: { idEmotion: finalParent }
+        });
+
+        if (!parent || parent.deletedAt) {
+            throw new Error("PARENT_EMOTION_NOT_FOUND");
+        }
+        if (parent.level !== LevelEmotionEnum.LEVEL_1) {
+            throw new Error("INVALID_PARENT_LEVEL");
+        }
+    }
+
+    if (finalParent === id) {
+        throw new Error("EMOTION_CANNOT_BE_ITS_OWN_PARENT");
+    }
+
+    if (existingEmotion.level === LevelEmotionEnum.LEVEL_1
+        && finalLevel === LevelEmotionEnum.LEVEL_2
+        && existingEmotion.childEmotions.length > 0) {
+        throw new Error("CANNOT_DOWNGRADE_WITH_CHILDREN");
+    }
+
+    if (finalLevel === LevelEmotionEnum.LEVEL_1 && finalParent) {
+        throw new Error("LEVEL_1_CANNOT_HAVE_PARENT")
+    };
+
+    if (finalLevel === LevelEmotionEnum.LEVEL_2 && !finalParent) {
+        throw new Error("LEVEL_2_REQUIRES_PARENT");
+    }
+
+    const emotionUpdated = await prisma.emotion.update({
+        where: { idEmotion: id },
+        data
+    })
+
+    return emotionUpdated;
+}
+
+export const deleteEmotionService = async (id: string) => {
+
+    const emotion = await prisma.emotion.findUnique({
+        where: { idEmotion: id },
+        include: {
+            childEmotions: {
+                where: { deletedAt: null }
+            }
+        }
+    })
+
+    if (!emotion || emotion.deletedAt) {
+        throw new Error("EMOTION_NOT_FOUND")
+    }
+
+    if (emotion.level === LevelEmotionEnum.LEVEL_1 && emotion.childEmotions.length > 0) {
+        throw new Error("CANNOT_DELETE_WITH_CHILDREN")
+    }
+    await prisma.emotion.update({
+        where: { idEmotion: id },
+        data: {
+            deletedAt: new Date()
+        }
+    })
 }

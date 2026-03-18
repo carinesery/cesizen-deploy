@@ -123,6 +123,7 @@ model Emotion {
   iconUrl         String?      @db.VarChar(255)
   level           EmotionLevel
   parentEmotionId String?
+  deletedAt       DateTime?
 
   // Relations
   parentEmotion Emotion?    @relation("emotionHierarchy", fields: [parentEmotionId], references: [idEmotion])
