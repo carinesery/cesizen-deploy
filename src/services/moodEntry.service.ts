@@ -1,29 +1,53 @@
 import { prisma } from "../prismaClient.js";
-import { createMoodEntryInput } from "../schemas/moodEntry.schema.js"
+import { createMoodEntryInput, updateMoodEntryBodyInput } from "../schemas/moodEntry.schema.js"
+
+
+export const getAllMoodEntriesService = async (idUser: number) => {
+
+    // User not found ou deletedAt ou disabledAt
+
+    const moodEntries = await prisma.moodEntry.findMany({
+        where: {
+            userId: idUser,
+            deletedAt: null
+        },
+        include: {
+            emotion: true,
+            feeling: true,
+        }
+    })
+
+    return moodEntries;
+
+}
+
+export const getMoodEntryService = async (idUser: number, id: string) => {
+
+    const moodEntry = await prisma.moodEntry.findFirst({
+        where: {
+            idMoodEntry: id,
+            userId: idUser,
+            deletedAt: null
+        },
+        include: {
+            emotion: true,
+            feeling: true,
+        }
+    })
+
+    if (!moodEntry) {
+        throw new Error("MOOD_ENTRY_NOT_FOUND")
+    }
+
+    return moodEntry;
+}
 
 
 export const createMoodEntryService = async (data: createMoodEntryInput, idUser: number) => {
 
-    let inputDate = data.emotionDate; // peut être null ou undefined ou être ok ou être invalide 
+    const baseDate = data.emotionDate ?? new Date();
 
-    // considérer comme vide si : undefined, null, "", NaN, false
-    if (!inputDate || Number.isNaN(new Date(inputDate).getTime())) {
-        inputDate = new Date(); // aujourd'hui
-    } else {
-        // transformer en Date
-        inputDate = new Date(inputDate);
-    }
-
-    // 
-    /*  // emotionDate est déjà transformé et validé par Zod
-    const inputDate = new Date(data.emotionDate);
-    inputDate.setHours(0, 0, 0, 0); // normaliser minuit
- */
-
-    // normaliser pour l'unicité par jour
-    inputDate.setHours(0, 0, 0, 0);
-
-    const normalizedDate = new Date(inputDate);
+    const normalizedDate = new Date(baseDate);
     normalizedDate.setHours(0, 0, 0, 0);
 
     const existingMoodEntry = await prisma.moodEntry.findUnique({
@@ -38,8 +62,7 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
     if (existingMoodEntry) {
         throw new Error("MOOD_ENTRY_ALREADY_EXISTS")
     }
-    // vérifier que l'émotion existe ?
-    // renvoyer une erreur si ce n'est pas le cas
+
     const emotion = await prisma.emotion.findUnique({
         where: { idEmotion: data.emotionId },
     });
@@ -78,4 +101,82 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
     })
 
     return moodEntry;
+}
+
+
+export const updateMoodEntryService = async (id: string, data: updateMoodEntryBodyInput, idUser: number) => {
+
+    // 1. récupérer moodEntry existant
+    const existingMoodEntry = await prisma.moodEntry.findFirst({
+        where: {
+            idMoodEntry: id,
+            userId: idUser
+            // deletedAt: null
+        }
+    })
+
+    if (!existingMoodEntry) {
+        throw new Error("MOOD_ENTYR_NOT_FOUND")
+    }
+
+    // 2️⃣ Résoudre valeurs finales
+    const updatedEmotionDate = data.emotionDate ?? existingMoodEntry.emotionDate;
+    const updatedEmotionId = data.emotionId ?? existingMoodEntry.emotionId;
+    const updatedIntensity = data.parentEmotionIntensity ?? existingMoodEntry.parentEmotionIntensity;
+    const updatedFeelingId = data.feelingId !== undefined ? data.feelingId : existingMoodEntry.feelingId; // ici tu mets cette forme car ca pourrait être null c'est ça ? 
+    const updatedComment = data.comment !== undefined ? data.comment : existingMoodEntry.comment;
+
+    // 3️⃣ Vérifications métier
+    if (updatedEmotionId !== existingMoodEntry.emotionId) {
+        // Vérifier que la nouvelle émotion existe et n'est pas supprimée
+        const emotion = await prisma.emotion.findUnique({
+            where: { idEmotion: updatedEmotionId }
+        });
+        if (!emotion || emotion.deletedAt) throw new Error("PRINCIPAL_EMOTION_DOES_NOT_EXIST");
+
+        // Si un feeling existe, vérifier compatibilité
+        if (updatedFeelingId) {
+            const feeling = await prisma.emotion.findUnique({
+                where: { idEmotion: updatedFeelingId }
+            });
+            if (!feeling || feeling.deletedAt) throw new Error("FEELING_NOT_FOUND");
+            if (feeling.parentEmotionId !== updatedEmotionId) throw new Error("FEELING_NOT_COMPATIBLE");
+        }
+    } else if (updatedFeelingId && updatedFeelingId !== existingMoodEntry.feelingId) {
+        // Feeling modifié seul
+        const feeling = await prisma.emotion.findUnique({
+            where: { idEmotion: updatedFeelingId }
+        });
+        if (!feeling || feeling.deletedAt) throw new Error("FEELING_NOT_FOUND");
+        if (feeling.parentEmotionId !== updatedEmotionId) throw new Error("FEELING_NOT_COMPATIBLE");
+    }
+
+    // Vérifier unicité date par utilisateur
+    const conflict = await prisma.moodEntry.findFirst({
+        where: {
+            userId: idUser,
+            emotionDate: updatedEmotionDate,
+            idMoodEntry: { not: id } // exclus la moodEntry actuelle de la recherche
+        }
+    });
+    if (conflict) throw new Error("EMOTION_DATE_CONFLICT");
+
+    // 4️⃣ Update DB
+    const updatedMoodEntry = await prisma.moodEntry.update({
+        where: { idMoodEntry: id },
+        data: {
+            emotionDate: updatedEmotionDate,
+            emotionId: updatedEmotionId,
+            parentEmotionIntensity: updatedIntensity,
+            feelingId: updatedFeelingId ?? null,
+            comment: updatedComment ?? null,
+            updatedAt: new Date()
+        },
+        include: {
+            emotion: true,
+            feeling: true
+        }
+    });
+
+    return updatedMoodEntry;
 }
