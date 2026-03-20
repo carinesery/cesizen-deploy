@@ -175,7 +175,8 @@ export const deleteEmotionController = async (
 
         await deleteEmotionService(id);
 
-        return res.status(204).json({ message: "L'émotion a été supprimée avec succès" });
+        return res.status(200).json({ message: "L'émotion a été supprimée avec succès" });
+        
     } catch (error) {
         if (error instanceof Error) {
             if (error.message === "EMOTION_NOT_FOUND") {

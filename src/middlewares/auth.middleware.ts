@@ -3,6 +3,19 @@ import { Request, Response, NextFunction } from "express";
 import { verifyJwt } from "../utils/jwt.js";
 import { UserRoleEnum } from "../utils/enum.js";
 
+
+/* export interface AuthRequest<
+    P = {},
+    ResBody = {},
+    ReqBody = {},
+    ReqQuery = {}
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
+    user?: {
+        idUser: number;
+        role: UserRoleEnum;
+    };
+} */
+
 export interface AuthRequest extends Request {
     user?: {
         idUser: number;

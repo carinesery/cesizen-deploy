@@ -134,8 +134,8 @@ model Emotion {
 
 model MoodEntry {
   idMoodEntry            String    @id @default(cuid())
-  emotionDate            DateTime  @default(now())
-  parentEmotionIntensity Int       @default(5) // Validation au niveau applicatif
+  emotionDate            DateTime  
+  parentEmotionIntensity Int       
   comment                String?   @db.Text
   createdAt              DateTime  @default(now())
   updatedAt              DateTime?
