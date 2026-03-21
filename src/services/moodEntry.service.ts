@@ -4,8 +4,6 @@ import { createMoodEntryInput, updateMoodEntryBodyInput } from "../schemas/moodE
 
 export const getAllMoodEntriesService = async (idUser: number) => {
 
-    // User not found ou deletedAt ou disabledAt
-
     const moodEntries = await prisma.moodEntry.findMany({
         where: {
             userId: idUser,
@@ -47,8 +45,11 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
 
     const baseDate = data.emotionDate ?? new Date();
 
-    const normalizedDate = new Date(baseDate);
-    normalizedDate.setHours(0, 0, 0, 0);
+    const normalizedDate = new Date(Date.UTC(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate()
+    ));
 
     const existingMoodEntry = await prisma.moodEntry.findUnique({
         where: {
@@ -71,6 +72,10 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
         throw new Error("PRINCIPAL_EMOTION_DOES_NOT_EXIST")
     }
 
+    if (emotion.parentEmotionId) {
+        throw new Error("INVALID_PRINCIPAL_EMOTION");
+    }
+
     if (data.feelingId) {
         const feeling = await prisma.emotion.findUnique({
             where: { idEmotion: data.feelingId }
@@ -81,7 +86,7 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
         }
 
         if (!feeling.parentEmotionId) {
-            throw new Error("FEELING_HAS_NO_PARENT");
+            throw new Error("INVALID_FEELING");
         }
 
         if (feeling.parentEmotionId !== data.emotionId) {
@@ -97,6 +102,10 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
             ...rest,
             userId: idUser,
             emotionDate: normalizedDate
+        },
+        include: {
+            emotion: true,
+            feeling: true
         }
     })
 
@@ -106,27 +115,24 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
 
 export const updateMoodEntryService = async (id: string, data: updateMoodEntryBodyInput, idUser: number) => {
 
-    // 1. récupérer moodEntry existant
     const existingMoodEntry = await prisma.moodEntry.findFirst({
         where: {
             idMoodEntry: id,
             userId: idUser
-            // deletedAt: null
         }
     })
 
     if (!existingMoodEntry) {
-        throw new Error("MOOD_ENTYR_NOT_FOUND")
+        throw new Error("MOOD_ENTRY_NOT_FOUND")
     }
 
-    // 2️⃣ Résoudre valeurs finales
     const updatedEmotionDate = data.emotionDate ?? existingMoodEntry.emotionDate;
     const updatedEmotionId = data.emotionId ?? existingMoodEntry.emotionId;
     const updatedIntensity = data.parentEmotionIntensity ?? existingMoodEntry.parentEmotionIntensity;
     const updatedFeelingId = data.feelingId !== undefined ? data.feelingId : existingMoodEntry.feelingId; // ici tu mets cette forme car ca pourrait être null c'est ça ? 
     const updatedComment = data.comment !== undefined ? data.comment : existingMoodEntry.comment;
 
-    // 3️⃣ Vérifications métier
+    
     if (updatedEmotionId !== existingMoodEntry.emotionId) {
         // Vérifier que la nouvelle émotion existe et n'est pas supprimée
         const emotion = await prisma.emotion.findUnique({
@@ -134,38 +140,56 @@ export const updateMoodEntryService = async (id: string, data: updateMoodEntryBo
         });
         if (!emotion || emotion.deletedAt) throw new Error("PRINCIPAL_EMOTION_DOES_NOT_EXIST");
 
+        if (emotion.parentEmotionId) {
+            throw new Error("INVALID_PRINCIPAL_EMOTION");
+        }
         // Si un feeling existe, vérifier compatibilité
         if (updatedFeelingId) {
             const feeling = await prisma.emotion.findUnique({
                 where: { idEmotion: updatedFeelingId }
             });
             if (!feeling || feeling.deletedAt) throw new Error("FEELING_NOT_FOUND");
-            if (feeling.parentEmotionId !== updatedEmotionId) throw new Error("FEELING_NOT_COMPATIBLE");
+
+            // Ici il faudrait peut-être vérifier que le parentEmotionId n'a pas été deletedAt
+            if (!feeling.parentEmotionId) throw new Error("INVALID_FEELING");
+            if (feeling.parentEmotionId !== updatedEmotionId) throw new Error("FEELING_NOT_LINKED_TO_EMOTION");
         }
     } else if (updatedFeelingId && updatedFeelingId !== existingMoodEntry.feelingId) {
-        // Feeling modifié seul
+        // SI feeling modifié seul
         const feeling = await prisma.emotion.findUnique({
             where: { idEmotion: updatedFeelingId }
         });
         if (!feeling || feeling.deletedAt) throw new Error("FEELING_NOT_FOUND");
-        if (feeling.parentEmotionId !== updatedEmotionId) throw new Error("FEELING_NOT_COMPATIBLE");
+
+        // Ici il faudrait peut-être vérifier que le parentEmotionId n'a pas été deletedAt
+        if (!feeling.parentEmotionId) throw new Error("INVALID_FEELING");
+        if (feeling.parentEmotionId !== updatedEmotionId) throw new Error("FEELING_NOT_LINKED_TO_EMOTION");
     }
 
-    // Vérifier unicité date par utilisateur
-    const conflict = await prisma.moodEntry.findFirst({
-        where: {
-            userId: idUser,
-            emotionDate: updatedEmotionDate,
-            idMoodEntry: { not: id } // exclus la moodEntry actuelle de la recherche
-        }
-    });
-    if (conflict) throw new Error("EMOTION_DATE_CONFLICT");
+    const normalizedUpdatedDate = new Date(Date.UTC(
+        updatedEmotionDate.getFullYear(),
+        updatedEmotionDate.getMonth(),
+        updatedEmotionDate.getDate()
+    ));
 
-    // 4️⃣ Update DB
+    // Vérifier unicité date par utilisateur
+    if (normalizedUpdatedDate.getTime() !== existingMoodEntry.emotionDate.getTime()) {
+        const conflict = await prisma.moodEntry.findFirst({
+            where: {
+                userId: idUser,
+                emotionDate: normalizedUpdatedDate,
+                idMoodEntry: { not: id }
+            }
+        });
+
+        if (conflict) throw new Error("EMOTION_DATE_CONFLICT");
+    }
+
+    // Mise à jour
     const updatedMoodEntry = await prisma.moodEntry.update({
         where: { idMoodEntry: id },
         data: {
-            emotionDate: updatedEmotionDate,
+            emotionDate: normalizedUpdatedDate,
             emotionId: updatedEmotionId,
             parentEmotionIntensity: updatedIntensity,
             feelingId: updatedFeelingId ?? null,
@@ -179,4 +203,23 @@ export const updateMoodEntryService = async (id: string, data: updateMoodEntryBo
     });
 
     return updatedMoodEntry;
+}
+
+
+export const deleteMoodEntryService = async (id: string, idUser: number) => {
+
+    const moodEntry = await prisma.moodEntry.findFirst({
+        where: {
+            idMoodEntry: id,
+            userId: idUser
+        }
+    })
+
+    if (!moodEntry) {
+        throw new Error("MOOD_ENTRY_NOT_FOUND");
+    }
+
+    await prisma.moodEntry.delete({
+        where: { idMoodEntry: id }
+    });
 }

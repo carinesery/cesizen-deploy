@@ -153,7 +153,7 @@ export const loginUserService = async (data: LoginUserInput) => {
     const accessToken = jwt.sign(
         { idUser: user.idUser, role: user.role },
         process.env.JWT_SECRET!,
-        { expiresIn: "5m" }
+        { expiresIn: "1h" }
     );
 
     const jti = crypto.randomUUID();
