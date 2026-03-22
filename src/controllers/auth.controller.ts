@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ValidatedRequest } from "../middlewares/validate.middleware.js";
-import { createUserService, confirmEmailService, acceptLegalService, loginUserService, refreshTokenService, logoutService } from "../services/user.service.js";
-import { loginUserSchema, registerUserSchema } from "../schemas/user.schema.js";
+import { createUserService, confirmEmailService, acceptLegalService, loginUserService, refreshTokenService, logoutService, forgotPasswordService, resetPasswordService } from "../services/user.service.js";
+import { forgotPasswordBodyInput, resetPasswordBodyInput, loginUserSchema, registerUserSchema } from "../schemas/user.schema.js";
 import { UserRoleEnum } from "../utils/enum.js";
 
 
@@ -224,8 +224,8 @@ export const logoutController = async (
         return res.status(200).json({ message: "Déconnexion réussie" })
 
     } catch (error) {
-         res.clearCookie("refreshToken");
-         
+        res.clearCookie("refreshToken");
+
         if (error instanceof Error) {
             if (error.message === "INVALID_TOKEN_TYPE" || error.message === "INVALID_REFRESH_TOKEN") {
                 return res.status(401).json({
@@ -237,3 +237,46 @@ export const logoutController = async (
 
     }
 }
+
+export const forgotPasswordController = async (
+    req: Request<{}, {}, forgotPasswordBodyInput>,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { email } = req.body;
+
+        await forgotPasswordService(email);
+
+        return res.status(200).json({
+            message: "Si un compte existe, un email a été envoyé"
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resetPasswordController = async (
+    req: Request<{}, {}, { token: string, password: string }>,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { token, password } = req.body;
+
+        await resetPasswordService(token, password);
+
+        return res.status(200).json({
+            message: "Mot de passe réinitialisé avec succès"
+        });
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.message === "INVALID_TOKEN" || error.message === "INVALID_TOKEN_TYPE") {
+                return res.status(400).json({
+                    message: "Lien invalide ou expiré"
+                });
+            }
+        }
+        next(error);
+    }
+};
