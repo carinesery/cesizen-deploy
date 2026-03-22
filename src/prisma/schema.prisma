@@ -17,15 +17,15 @@ enum ArticleStatus {
 }
 
 model Article {
-  idArticle            Int           @id @default(autoincrement())
+  idArticle            String        @id @default(cuid()) // String
   title                String        @db.VarChar(200)
   slug                 String        @unique @db.VarChar(255)
   summary              String?       @db.Text
   content              String?       @db.Text
   presentationImageUrl String?       @db.VarChar(500)
-  authorId             Int
+  authorId             String // String
   createdAt            DateTime      @default(now())
-  updatedById          Int?
+  updatedById          String? // String
   updatedAt            DateTime?
   status               ArticleStatus @default(DRAFT)
 
@@ -44,20 +44,20 @@ enum MediaType {
 }
 
 model Media {
-  idMedia   Int       @id @default(autoincrement())
+  idMedia   String    @id @default(cuid())
   title     String    @db.VarChar(200)
   type      MediaType
   mediaUrl  String    @unique @db.VarChar(500)
   altText   String?   @db.VarChar(255)
   caption   String?   @db.VarChar(255)
-  articleId Int?
+  articleId String? // String 
 
   // Relations 
   article Article? @relation("articleMedias", fields: [articleId], references: [idArticle])
 }
 
 model Category {
-  idCategory  Int     @id @default(autoincrement())
+  idCategory  String  @id @default(cuid()) // String
   title       String  @unique @db.VarChar(50)
   slug        String  @unique @db.VarChar(60)
   description String? @db.Text
@@ -73,7 +73,7 @@ enum UserRole {
 }
 
 model User {
-  idUser              Int       @id @default(autoincrement())
+  idUser              String    @id @default(cuid()) // String
   username            String    @unique @db.VarChar(50)
   profilPictureUrl    String?   @db.VarChar(500)
   email               String    @unique @db.VarChar(255)
@@ -97,9 +97,9 @@ model User {
 }
 
 model RefreshToken {
-  idRefreshToken Int      @id @default(autoincrement())
+  idRefreshToken String   @id @default(cuid()) // String
   jti            String   @unique
-  userId         Int
+  userId         String  //String
   refreshToken   String   @unique
   createdAt      DateTime @default(now())
   expiresAt      DateTime
@@ -139,8 +139,7 @@ model MoodEntry {
   comment                String?   @db.Text
   createdAt              DateTime  @default(now())
   updatedAt              DateTime?
-  deletedAt              DateTime?
-  userId                 Int
+  userId                 String // String
   emotionId              String
   feelingId              String?
 

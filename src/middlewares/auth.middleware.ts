@@ -18,7 +18,7 @@ import { UserRoleEnum } from "../utils/enum.js";
 
 export interface AuthRequest extends Request {
     user?: {
-        idUser: number;
+        idUser: string;
         role: UserRoleEnum;
     };
 }
@@ -40,7 +40,7 @@ export const authMiddleware = async (
         if (scheme !== "Bearer" || !token) {
             return res.status(401).json({ message: "Format de token invalide" });
         }
-        const payload = verifyJwt<{ idUser: number; role: UserRoleEnum }>(
+        const payload = verifyJwt<{ idUser: string; role: UserRoleEnum }>(
             token,
             process.env.JWT_SECRET!
         );

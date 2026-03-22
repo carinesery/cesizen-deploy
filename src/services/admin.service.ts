@@ -1,5 +1,5 @@
 import { prisma } from "../prismaClient.js";
-import { UserStatusInput } from "../schemas/admin.schema.js";
+import { UserStatusBodyInput } from "../schemas/admin.schema.js";
 
 export const getAllUsersService = async () => {
 
@@ -22,11 +22,11 @@ export const getAllUsersService = async () => {
     return users;
 }
 
-export const getUserService = async (idUser: number) => {
+export const getUserService = async (idUser: string) => {
 
     const user = await prisma.user.findUnique(
         {
-            where: { idUser: idUser },
+            where: { idUser },
             select: {
                 username: true,
                 email: true,
@@ -48,9 +48,9 @@ export const getUserService = async (idUser: number) => {
 }
 
 export const setUserActiveStatusService = async (
-    idUser: number,
-    data: UserStatusInput,
-    idAdmin: number,
+    idUser: string,
+    data: UserStatusBodyInput, // Doute ici
+    idAdmin: string,
 ) => {
     const user = await prisma.user.findUnique({
         where: { idUser }
@@ -100,7 +100,7 @@ export const setUserActiveStatusService = async (
 
 };
 
-export const deleteUserService = async (idUser: number, idAdmin: number) => {
+export const deleteUserService = async (idUser: string, idAdmin: string) => {
 
     const user = await prisma.user.findUnique({
         where: { idUser },

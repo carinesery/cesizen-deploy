@@ -87,7 +87,7 @@ export const updatePasswordController = async (
 ) => {
     try {
         const { idUser } = req.user!;
-        const data: UpdatedPasswordInput = req.body;
+        const { confirmNewPassword , ...data } = req.body as UpdatedPasswordInput;
 
         await updatePasswordService(idUser, data);
 

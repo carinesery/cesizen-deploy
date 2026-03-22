@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { UserRoleEnum } from "../utils/enum.js";
 
+export const getUserParamsSchema = z.object({
+    id: z.cuid(),
+})
+
+export type GetUserParamsInput = z.infer<typeof getUserParamsSchema>;
+
 export const adminRegisterSchema = z.object({
     username: z
         .string()
@@ -25,7 +31,15 @@ export const adminRegisterSchema = z.object({
     path: ["confirmPassword"],
 });
 
-export const adminUpdateUserSchema = z.object({
+export type AdminRegisterInput = z.infer<typeof adminRegisterSchema>;
+
+export const adminUpdateUserParamsSchema = z.object({
+    id: z.cuid(),
+})
+
+export type AdminUpdateUserParamsInput = z.infer<typeof adminUpdateUserParamsSchema>;
+
+export const adminUpdateUserBodySchema = z.object({
     username: z
         .string()
         .min(3, "Le nom d'utilisateur doit faire au moins 3 caractères")
@@ -45,8 +59,22 @@ export const adminUpdateUserSchema = z.object({
     { message: "Au moins un champ doit être modifié" }
 );
 
-export const userStatusSchema = z.object({
+export type AdminUpdateUserBodyInput = z.infer<typeof adminUpdateUserBodySchema>;
+
+export const userStatusParamsSchema = z.object({
+    id: z.cuid()
+})
+
+export type UserStatusParamsInput = z.infer<typeof userStatusParamsSchema>;
+
+export const userStatusBodySchema = z.object({
     isActive: z.boolean()
 })
 
-export type UserStatusInput = z.infer<typeof userStatusSchema>;
+export type UserStatusBodyInput = z.infer<typeof userStatusBodySchema>;
+
+export const deleteUserParamsSchema = z.object({
+    id: z.cuid(),
+})
+
+export type DeleteUserParamsInput = z.infer<typeof deleteUserParamsSchema>;

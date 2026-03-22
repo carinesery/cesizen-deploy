@@ -67,7 +67,7 @@ export const createUserService = async (data: CreateUser) => {
 
 export const confirmEmailService = async (token: string) => {
     // 1️⃣ Vérifier et décoder le token + ici un try aurait été bien
-    const payload = verifyJwt<{ idUser: number; type: string }>(
+    const payload = verifyJwt<{ idUser: string; type: string }>(
         token,
         process.env.JWT_EMAIL_SECRET!
     );
@@ -119,7 +119,7 @@ export const acceptLegalService = async (token: string) => {
     if (!secret) throw new Error("JWT_EMAIL_SECRET not defined");
 
     // Vérification du token
-    const payload = verifyJwt<{ idUser: number; type: string }>(token, secret);
+    const payload = verifyJwt<{ idUser: string; type: string }>(token, secret);
 
     if (payload.type !== "LEGAL_ACCEPT") {
         throw new Error("INVALID_TOKEN_TYPE");
@@ -290,10 +290,10 @@ export const forgotPasswordService = async (email: string) => {
 
 export const resetPasswordService = async (token: string, password: string) => {
 
-    let payload: { idUser: number; type: string };
+    let payload: { idUser: string; type: string };
 
     try {
-        payload = verifyJwt<{ idUser: number; type: string }>(
+        payload = verifyJwt<{ idUser: string; type: string }>(
             token,
             process.env.JWT_EMAIL_SECRET!
         );

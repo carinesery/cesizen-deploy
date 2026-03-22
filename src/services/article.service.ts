@@ -49,7 +49,7 @@ type CreateArticleInput = {
     content?: string;
     summary?: string;
     presentationImageUrl?: string;
-    authorId: number; // devra venir de auth donc à modifier ensuite
+    authorId: string; // devra venir de auth donc à modifier ensuite
     status?: "DRAFT" | "PUBLISHED";
 }
 export const createArticle = async (data: CreateArticleInput) => {
@@ -84,7 +84,7 @@ type UpdateArticleInput = {
     summary?: string;
     presentationImageUrl?: string;
     status?: "DRAFT" | "PUBLISHED";
-    updatedById: number;
+    updatedById: string;
     // Est ce que je passe updatedAt --> non je pense que je le gère du côté back-end
     // Est ce que je passe updatedBy ? Je ne sais pas où je le gère ... non je pense que c'est aussi côté back-end
 }

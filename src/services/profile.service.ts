@@ -5,7 +5,7 @@ import { sendConfirmationEmail } from "./mail.service.js";
 import bcrypt from "bcrypt";
 import { UserRoleEnum } from "../utils/enum.js";
 
-export const getProfileService = async (idUser: number) => {
+export const getProfileService = async (idUser: string) => {
 
     const user = await prisma.user.findUnique(
         {
@@ -46,7 +46,7 @@ export type UpdateUser = {
 }
 
 
-export const updateUserService = async (idUser: number, data: UpdateUser, idAdmin?: number) => {
+export const updateUserService = async (idUser: string, data: UpdateUser, idAdmin?: string) => {
 
     const user = await prisma.user.findUnique(
         { where: { idUser: idUser } }
@@ -112,7 +112,7 @@ export const updateUserService = async (idUser: number, data: UpdateUser, idAdmi
 
     const updatedUser = await prisma.user.update(
         {
-            where: { idUser: idUser },
+            where: { idUser },
             data: {
                 ...updatedData,
                 updatedAt: new Date()
@@ -148,9 +148,8 @@ export const updateUserService = async (idUser: number, data: UpdateUser, idAdmi
     };
 }
 
-export const updatePasswordService = async (idUser: number, data: UpdatedPasswordInput) => {
+export const updatePasswordService = async (idUser: string, data: { currentPassword: string; newPassword: string }) => {
 
-    //vérif user et trouver le user ?
     const user = await prisma.user.findUnique({
         where: { idUser }
     })
@@ -204,7 +203,7 @@ export const updatePasswordService = async (idUser: number, data: UpdatedPasswor
     return true;
 }
 
-export const deleteAccountService = async (idUser:number) => {
+export const deleteAccountService = async (idUser:string) => {
 
     const user = await prisma.user.findUnique({
         where: {idUser: idUser}

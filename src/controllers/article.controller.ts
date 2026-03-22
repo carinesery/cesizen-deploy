@@ -64,7 +64,7 @@ export const patchArticle = async (
     try {
         const article = await updateArticle(slug, req.body);
         return res.status(200).json(article);
-    } catch (error) { // quelles sont les erreurs qui peuvent survenir au moment de l'enregistrement: slug déjà utilisé (409=conflit), article introuvable (404), données invalides (bad request) et pb serveur (500Z)
+    } catch (error) { 
         if (error instanceof Error &&
             error.message === "ARTICLE_NOT_FOUND") {
             return res.status(404).json({

@@ -11,7 +11,7 @@ export const registerController = async (
     next: NextFunction
 ) => {
     try {
-        const registerData = registerUserSchema.parse(req.body);
+        const { confirmPassword, ...registerData } = registerUserSchema.parse(req.body);
 
         const data = {
             ...registerData,
@@ -257,7 +257,7 @@ export const forgotPasswordController = async (
 };
 
 export const resetPasswordController = async (
-    req: Request<{}, {}, { token: string, password: string }>,
+    req: Request<{}, {}, resetPasswordBodyInput>,
     res: Response,
     next: NextFunction
 ) => {
