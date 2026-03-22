@@ -17,13 +17,13 @@ app.use(cookieParser());
 app.get("/", (req, res) =>  {
     res.send("Working")
 });
-app.use("/articles", articleRoutes);
-app.use("/auth", authRoutes);
-app.use("/admin", adminRoutes);
-app.use("/profile", profileRoutes)
-app.use("/emotions", emotionsRoutes)
-app.use("/mood-entries", moodEntriesRoutes)
-app.use("/stats", statsRoutes)
+app.use("/api/articles", articleRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/profile", profileRoutes)
+app.use("/api/emotions", emotionsRoutes)
+app.use("/api/mood-entries", moodEntriesRoutes)
+app.use("/api/stats", statsRoutes)
 
 app.use(errorMiddleware);
 

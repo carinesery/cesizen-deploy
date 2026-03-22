@@ -3,6 +3,7 @@ import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { getProfileService } from "../services/profile.service.js";
 import { updateUserService, updatePasswordService, deleteAccountService } from "../services/profile.service.js";
 import { UpdatedProfileUserInput, UpdatedPasswordInput } from "../schemas/profile.schema.js";
+import { UserRoleEnum } from "../utils/enum.js";
 
 export const getProfileController = async (
     req: AuthRequest,
@@ -87,7 +88,7 @@ export const updatePasswordController = async (
 ) => {
     try {
         const { idUser } = req.user!;
-        const data: UpdatedPasswordInput = req.body;
+        const { confirmNewPassword , ...data } = req.body as UpdatedPasswordInput;
 
         await updatePasswordService(idUser, data);
 
@@ -134,6 +135,15 @@ export const deleteAccountController = async (
 
     try {
         const idUser = req.user!.idUser;
+
+        const roleUser = req.user!.role;
+
+         // Empêcher les admins de supprimer leur compte par mégarde
+        if (roleUser === UserRoleEnum.ADMIN) {
+            return res.status(403).json({
+                message: "Un administrateur ne peut pas supprimer son propre compte via cette route."
+            });
+        }
 
         await deleteAccountService(idUser);
 

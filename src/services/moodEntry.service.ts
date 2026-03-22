@@ -1,13 +1,10 @@
 import { prisma } from "../prismaClient.js";
 import { createMoodEntryInput, updateMoodEntryBodyInput } from "../schemas/moodEntry.schema.js"
 
-export const getAllMoodEntriesService = async (idUser: number) => {
+export const getAllMoodEntriesService = async (idUser: string) => {
 
     const moodEntries = await prisma.moodEntry.findMany({
-        where: {
-            userId: idUser,
-            deletedAt: null
-        },
+        where: { userId: idUser },
         include: {
             emotion: true,
             feeling: true,
@@ -18,13 +15,12 @@ export const getAllMoodEntriesService = async (idUser: number) => {
 
 }
 
-export const getMoodEntryService = async (idUser: number, id: string) => {
+export const getMoodEntryService = async (idUser: string, id: string) => {
 
     const moodEntry = await prisma.moodEntry.findFirst({
         where: {
             idMoodEntry: id,
-            userId: idUser,
-            deletedAt: null
+            userId: idUser
         },
         include: {
             emotion: true,
@@ -40,7 +36,7 @@ export const getMoodEntryService = async (idUser: number, id: string) => {
 }
 
 
-export const createMoodEntryService = async (data: createMoodEntryInput, idUser: number) => {
+export const createMoodEntryService = async (data: createMoodEntryInput, idUser: string) => {
 
     const baseDate = data.emotionDate ?? new Date();
 
@@ -112,7 +108,7 @@ export const createMoodEntryService = async (data: createMoodEntryInput, idUser:
 }
 
 
-export const updateMoodEntryService = async (id: string, data: updateMoodEntryBodyInput, idUser: number) => {
+export const updateMoodEntryService = async (id: string, data: updateMoodEntryBodyInput, idUser: string) => {
 
     const existingMoodEntry = await prisma.moodEntry.findFirst({
         where: {
@@ -205,7 +201,7 @@ export const updateMoodEntryService = async (id: string, data: updateMoodEntryBo
 }
 
 
-export const deleteMoodEntryService = async (id: string, idUser: number) => {
+export const deleteMoodEntryService = async (id: string, idUser: string) => {
 
     const moodEntry = await prisma.moodEntry.findFirst({
         where: {

@@ -8,8 +8,8 @@ import { UserRoleEnum } from "../utils/enum.js";
 
 const router = Router();
 
-router.get("/", authMiddleware, getAllEmotionsController);
-router.get("/:id", authMiddleware, validate(getEmotionParamsSchema, "params"), getEmotionController)
+router.get("/", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), getAllEmotionsController);
+router.get("/:id", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), validate(getEmotionParamsSchema, "params"), getEmotionController)
 router.post("/", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), validate(createEmotionSchema, "body"), createEmotionController);
 router.patch("/:id", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), validate(updateEmotionParamsSchema, "params"), validate(updateEmotionBodySchema, "body"), updateEmotionController);
 router.delete("/:id", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), validate(deleteEmotionParamsSchema, "params"), deleteEmotionController);

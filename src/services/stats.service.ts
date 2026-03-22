@@ -1,7 +1,7 @@
 import { prisma } from "../prismaClient.js";
 import { getPeriodDates } from "../utils/getPeriodDates.js";
 
-export const getStatsMoodEntriesService = async (idUser: number, period: "week" | "month" | "year") => {
+export const getStatsMoodEntriesService = async (idUser: string, period: "week" | "month" | "year") => {
 
     const { startDate, endDate } = getPeriodDates(period);
 

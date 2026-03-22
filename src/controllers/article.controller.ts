@@ -1,5 +1,7 @@
 import { getPublicArticles, readArticle, createArticle, updateArticle } from "../services/article.service.js";
 import { Request, Response, NextFunction } from "express";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { CreateArticleInput } from "../schemas/article.schema.js";
 
 export const getArticles = async (
     req: Request,
@@ -36,13 +38,17 @@ export const getArticle = async (
 }
 
 export const postArticle = async (
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const article = await createArticle(req.body);
-        return res.status(201).json(article);
+        const authorId = req.user!.idUser;
+
+        const data = req.body as CreateArticleInput;
+
+        const article = await createArticle(data, authorId);
+        return res.status(201).json({ article });
     } catch (error) {
         if (error instanceof Error &&
             error.message === "ARTICLE_SLUG_ALREADY_EXISTS") {
@@ -55,16 +61,19 @@ export const postArticle = async (
 }
 
 export const patchArticle = async (
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
 ) => {
+
+    const authorId = req.user!.idUser;
+
     const { slug } = req.params as { slug: string };
 
     try {
-        const article = await updateArticle(slug, req.body);
+        const article = await updateArticle(slug, req.body, authorId);
         return res.status(200).json(article);
-    } catch (error) { // quelles sont les erreurs qui peuvent survenir au moment de l'enregistrement: slug déjà utilisé (409=conflit), article introuvable (404), données invalides (bad request) et pb serveur (500Z)
+    } catch (error) { 
         if (error instanceof Error &&
             error.message === "ARTICLE_NOT_FOUND") {
             return res.status(404).json({

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { createUserService } from "../services/user.service.js";
 import { updateUserService, UpdateUser } from "../services/profile.service.js";
-import { adminRegisterSchema, UserStatusInput } from "../schemas/admin.schema.js";
+import { AdminRegisterInput, adminRegisterSchema, UserStatusParamsInput, UserStatusBodyInput, GetUserParamsInput, AdminUpdateUserParamsInput, DeleteUserParamsInput } from "../schemas/admin.schema.js";
 import { getAllUsersService, getUserService, setUserActiveStatusService, deleteUserService } from "../services/admin.service.js";
 import { UserRoleEnum } from "../utils/enum.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
@@ -21,17 +21,19 @@ export const getAllUsersController = async (
 }
 
 export const getUserController = async (
-    req: Request<{ idUser: string }>,
+    req: Request<GetUserParamsInput>,
     res: Response,
     next: NextFunction
 ) => {
     try {
+        // Changement ici :
+        // const idUser = parseInt(req.params.idUser, 10);
+        const idUser = req.params.id;
+         // Faut-il faire une vérif qu'on a bien un user ici ?
 
-        const idUser = parseInt(req.params.idUser, 10);
-
-        if (isNaN(idUser)) {
-            return res.status(400).json({ message: "idUser invalide" });
-        }
+        // if (isNaN(idUser)) {
+        //     return res.status(400).json({ message: "idUser invalide" });
+        // }
 
         const user = await getUserService(idUser);
 
@@ -48,12 +50,14 @@ export const getUserController = async (
 };
 
 export const adminCreateUserController = async (
-    req: Request,
+    req: Request<{}, {}, AdminRegisterInput>,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const registerData = adminRegisterSchema.parse(req.body);
+
+        const { confirmPassword, ...registerData } = req.body;
+        // const registerData = adminRegisterSchema.parse(req.body);
 
         const data = {
             ...registerData,
@@ -85,18 +89,21 @@ export const adminCreateUserController = async (
     }
 }
 
-export const updateUserController = async (
-    req: Request<{ idUser: string }, any, UpdateUser> & { user?: { idUser: number; role: UserRoleEnum } },
+export const updateUserController = async ( // Changement ici
+    req: Request<AdminUpdateUserParamsInput, any, UpdateUser> & { user?: { idUser: string; role: UserRoleEnum } },
     res: Response,
     next: NextFunction
 ) => {
     try {
 
-        const idUser = parseInt(req.params.idUser, 10);
+        // Changement ici
+        // const idUser = parseInt(req.params.idUser, 10);
+        const idUser = req.params.id;
+         // Faut-il faire une vérif qu'on a bien un user ici ?
 
-        if (isNaN(idUser)) {
-            return res.status(400).json({ message: "idUser invalide" });
-        }
+        // if (isNaN(idUser)) {
+        //     return res.status(400).json({ message: "idUser invalide" });
+        // }
 
         const data: UpdateUser = req.body;
 
@@ -136,13 +143,15 @@ export const updateUserController = async (
 }
 
 export const setUserActiveStatusController = async (
-    req: Request<{ idUser: string }> & { user?: { idUser: number; role: UserRoleEnum } },
+    req: Request<UserStatusParamsInput> & { user?: { idUser: string; role: UserRoleEnum } },
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const idUser = parseInt(req.params.idUser, 10);
-        const data: UserStatusInput = req.body;
+        // const idUser = parseInt(req.params.idUser, 10);
+        const idUser = req.params.id;
+        // Faut-il faire une vérif qu'on a bien un user ici ?
+        const data: UserStatusBodyInput = req.body;
 
         const idAdmin = req.user!.idUser;
         if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
@@ -164,14 +173,15 @@ export const setUserActiveStatusController = async (
 };
 
 export const deleteUserController = async (
-    req: Request<{ idUser: string }> & { user?: { idUser: number; role: UserRoleEnum } },
+    req: Request<DeleteUserParamsInput> & { user?: { idUser: string; role: UserRoleEnum } },
     res: Response,
     next: NextFunction
 ) => {
     try {
-
-        const idUser = parseInt(req.params.idUser, 10);
-
+        // Changement ici : 
+        // const idUser = parseInt(req.params.idUser, 10);
+        const idUser = req.params.id;
+        // Faut-il faire une vérif qu'on a bien un user ici ?
         const idAdmin = req.user!.idUser;
 
         if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
