@@ -1,7 +1,6 @@
 import { prisma } from "../prismaClient.js";
 import { createMoodEntryInput, updateMoodEntryBodyInput } from "../schemas/moodEntry.schema.js"
 
-
 export const getAllMoodEntriesService = async (idUser: number) => {
 
     const moodEntries = await prisma.moodEntry.findMany({
@@ -132,7 +131,7 @@ export const updateMoodEntryService = async (id: string, data: updateMoodEntryBo
     const updatedFeelingId = data.feelingId !== undefined ? data.feelingId : existingMoodEntry.feelingId; // ici tu mets cette forme car ca pourrait être null c'est ça ? 
     const updatedComment = data.comment !== undefined ? data.comment : existingMoodEntry.comment;
 
-    
+
     if (updatedEmotionId !== existingMoodEntry.emotionId) {
         // Vérifier que la nouvelle émotion existe et n'est pas supprimée
         const emotion = await prisma.emotion.findUnique({

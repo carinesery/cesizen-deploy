@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express"
-import { getMoodEntryParamsInput, createMoodEntryInput, updateMoodEntryParamsInput, updateMoodEntryBodyInput, deleteMoodEntryParamsInput } from "../schemas/moodEntry.schema.js";
+import { getMoodEntryParamsInput, createMoodEntryInput, updateMoodEntryParamsInput, updateMoodEntryBodyInput, deleteMoodEntryParamsInput, getStatsQueryInput } from "../schemas/moodEntry.schema.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { createMoodEntryService, getAllMoodEntriesService, getMoodEntryService, updateMoodEntryService, deleteMoodEntryService } from "../services/moodEntry.service.js";
 
@@ -65,7 +65,7 @@ export const createMoodEntryController = async (
 
         return res.status(201).json({
             moodEntry,
-            message: "Entrée du journal créée avec succès" 
+            message: "Entrée du journal créée avec succès"
             // Pour afficher dans le front new Date(emotionDate).toLocaleDateString() 
         });
 
@@ -84,13 +84,13 @@ export const createMoodEntryController = async (
                 });
             }
             if (error.message === "INVALID_PRINCIPAL_EMOTION") {
-                return res.status(409).json({ 
+                return res.status(409).json({
                     error: "INVALID_PRINCIPAL_EMOTION",
                     message: "Cet item ne peut pas être utilisé comme émotion principale car il s'agit d'un sentiment"
                 });
             }
             if (error.message === "INVALID_FEELING") {
-                return res.status(409).json({ 
+                return res.status(409).json({
                     error: "INVALID_FEELING",
                     message: "Cet item ne peut pas être utilisé comme sentiment car il s'agit d'une émotion"
                 });
@@ -142,7 +142,7 @@ export const updateMoodEntryController = async (
                     message: "Feeling introuvable ou supprimé"
                 });
             }
-             if (error.message === "INVALID_PRINCIPAL_EMOTION") {
+            if (error.message === "INVALID_PRINCIPAL_EMOTION") {
                 return res.status(409).json({
                     error: "INVALID_PRINCIPAL_EMOTION",
                     message: "Cet item ne peut pas être utilisé comme émotion principale car il s'agit d'un sentiment"

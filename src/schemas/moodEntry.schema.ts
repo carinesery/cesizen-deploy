@@ -114,3 +114,9 @@ export const deleteMoodEntryParamsSchema = z.object({
 })
 
 export type deleteMoodEntryParamsInput = z.infer<typeof deleteMoodEntryParamsSchema>;
+
+export const getStatsQuerySchema = z.object({
+  period: z.enum(["week", "month", "year"])
+});
+
+export type getStatsQueryInput = z.infer<typeof getStatsQuerySchema>;
