@@ -8,7 +8,7 @@ const router = Router();
 
 router.post("/register", validate(registerUserSchema, "body"), registerController);
 router.get("/confirm-email", validate(confirmEmailSchema, "query"), confirmationEmailController);
-router.post("/accept-legal", validate(acceptLegalSchema, "body"), acceptLegalController);
+router.post("/accept-legal", validate(acceptLegalSchema, "body"), acceptLegalController); 
 router.post("/login", validate(loginUserSchema, "body"), loginController);
 router.post("/refresh-token", refreshTokenController);
 router.post("/logout", authMiddleware, logoutController);

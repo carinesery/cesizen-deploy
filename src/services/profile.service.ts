@@ -203,22 +203,22 @@ export const updatePasswordService = async (idUser: string, data: { currentPassw
     return true;
 }
 
-export const deleteAccountService = async (idUser:string) => {
+export const deleteAccountService = async (idUser: string) => {
 
     const user = await prisma.user.findUnique({
-        where: {idUser: idUser}
+        where: { idUser }
     })
 
-    if(!user || user.deletedAt) {
+    if (!user || user.deletedAt) {
         throw new Error("USER_NOT_FOUND")
-    } 
+    }
 
-    if(!user.isActive) {
+    if (!user.isActive) {
         throw new Error("ACCOUNT_INACTIVE")
     }
 
     await prisma.user.update({
-        where: {idUser: idUser},
+        where: { idUser: idUser },
         data: {
             isActive: false,
             disabledAt: new Date()
@@ -234,4 +234,5 @@ export const deleteAccountService = async (idUser:string) => {
             revoked: true
         }
     });
+
 }
