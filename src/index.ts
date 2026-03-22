@@ -6,6 +6,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import emotionsRoutes from "./routes/emotion.routes.js";
 import moodEntriesRoutes from "./routes/mood-entry.routes.js";
+import statsRoutes from "./routes/stats.routes.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 
 const app = express(); 
@@ -22,6 +23,7 @@ app.use("/admin", adminRoutes);
 app.use("/profile", profileRoutes)
 app.use("/emotions", emotionsRoutes)
 app.use("/mood-entries", moodEntriesRoutes)
+app.use("/stats", statsRoutes)
 
 app.use(errorMiddleware);
 

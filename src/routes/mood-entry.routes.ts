@@ -12,4 +12,5 @@ router.post("/", authMiddleware, validate(createMoodEntrySchema, "body"), create
 router.patch("/:id", authMiddleware, validate(updateMoodEntryParamsSchema, "params"), validate(updateMoodEntryBodySchema, "body"), updateMoodEntryController);
 router.delete("/:id", authMiddleware, validate(deleteMoodEntryParamsSchema, "params"), deleteMoodEntryController);
 
+
 export default router;
