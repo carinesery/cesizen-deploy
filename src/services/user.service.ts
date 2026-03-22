@@ -1,6 +1,6 @@
 import { prisma } from "../prismaClient.js";
 import { LoginUserInput } from "../schemas/user.schema.js";
-import { sendConfirmationEmail } from "../services/mail.service.js";
+import { sendConfirmationEmail, sendResetPasswordEmail } from "../services/mail.service.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import argon2 from "argon2";
@@ -66,7 +66,7 @@ export const createUserService = async (data: CreateUser) => {
 };
 
 export const confirmEmailService = async (token: string) => {
-    // 1️⃣ Vérifier et décoder le token
+    // 1️⃣ Vérifier et décoder le token + ici un try aurait été bien
     const payload = verifyJwt<{ idUser: number; type: string }>(
         token,
         process.env.JWT_EMAIL_SECRET!
@@ -205,8 +205,8 @@ export const refreshTokenService = async (tokenFromClient: string) => {
         include: { user: true },
     });
 
-    if(!storedToken || !storedToken.user) {
-         throw new Error("INVALID_REFRESH_TOKEN");
+    if (!storedToken || !storedToken.user) {
+        throw new Error("INVALID_REFRESH_TOKEN");
     }
 
     if (storedToken.revoked || storedToken.expiresAt < new Date()) {
@@ -256,4 +256,74 @@ export const logoutService = async (refreshTokenFromClient: string) => {
         data: { revoked: true }
     }
     );
+}
+
+export const forgotPasswordService = async (email: string) => {
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) return; // pas d'information si l'email n'existe pas.
+
+    const token = jwt.sign(
+        {
+            idUser: user.idUser,
+            type: "PASSWORD_RESET"
+        },
+        process.env.JWT_EMAIL_SECRET!,
+        { expiresIn: "15m" }
+    );
+
+    const resetUrl = `${process.env.FRONT_URL}/reset-password?token=${token}`;
+
+    await sendResetPasswordEmail(user.email, resetUrl);
+    // Le front fera const token = new URLSearchParams(window.location.search).get("token"); puis 
+    /* await fetch("/api/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+            token: token, // 💥 injecté manuellement par le front
+            password: form.password,
+            confirmPassword: form.confirmPassword
+  })
+}); */
+};
+
+export const resetPasswordService = async (token: string, password: string) => {
+
+    let payload: { idUser: number; type: string };
+
+    try {
+        payload = verifyJwt<{ idUser: number; type: string }>(
+            token,
+            process.env.JWT_EMAIL_SECRET!
+        );
+    } catch {
+        throw new Error("INVALID_TOKEN");
+    }
+
+    if (payload.type !== "PASSWORD_RESET") {
+        throw new Error("INVALID_TOKEN_TYPE");
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { idUser: payload.idUser }
+    });
+
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+        where: { idUser: user.idUser },
+        data: {
+            passwordHash
+        }
+    });
+
+    // On révoque tous les tokens de l'utilisateur suite à la maj du mdp
+    await prisma.refreshToken.updateMany({
+        where: { userId: user.idUser },
+        data: { revoked: true }
+    });
+
 }
