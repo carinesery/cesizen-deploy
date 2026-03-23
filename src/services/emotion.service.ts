@@ -24,7 +24,7 @@ export const getAllEmotionsService = async () => {
     return emotions;
 }
 
-export const getEmotionService = async (id: string) => { // Je ne comprends pas ici
+export const getEmotionService = async (id: string) => {
 
     const emotion = await prisma.emotion.findUnique({
         where: { idEmotion: id },
@@ -45,7 +45,7 @@ export const getEmotionService = async (id: string) => { // Je ne comprends pas 
     return emotion;
 }
 
-export const createEmotionService = async (data: CreateEmotionInput) => {
+export const createEmotionService = async (data: CreateEmotionInput, iconUrl: string | undefined) => {
 
     if (data.parentEmotionId && data.level === LevelEmotionEnum.LEVEL_1) {
         throw new Error("LEVEL_1_CANNOT_HAVE_PARENT")
@@ -83,7 +83,7 @@ export const createEmotionService = async (data: CreateEmotionInput) => {
             title: data.title,
             level: data.level,
             description: data.description,
-            iconUrl: data.iconUrl,
+            iconUrl,
             parentEmotionId: data.parentEmotionId
         }
     })
@@ -91,7 +91,7 @@ export const createEmotionService = async (data: CreateEmotionInput) => {
     return emotionStored;
 }
 
-export const updateEmotionService = async (id: string, data: UpdateEmotionBodyInput) => {
+export const updateEmotionService = async (id: string, data: UpdateEmotionBodyInput, iconUrl: string | null | undefined) => {
 
     const existingEmotion = await prisma.emotion.findUnique({
         where: { idEmotion: id },
@@ -141,12 +141,19 @@ export const updateEmotionService = async (id: string, data: UpdateEmotionBodyIn
         throw new Error("LEVEL_2_REQUIRES_PARENT");
     }
 
+    const oldIconUrl = existingEmotion.iconUrl;
+
     const emotionUpdated = await prisma.emotion.update({
         where: { idEmotion: id },
-        data
+        data: {
+              ...data,
+        iconUrl: iconUrl === undefined
+                ? existingEmotion.iconUrl
+                : iconUrl
+    }
     })
 
-    return emotionUpdated;
+    return { emotionUpdated, oldIconUrl }
 }
 
 export const deleteEmotionService = async (id: string) => {

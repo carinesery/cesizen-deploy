@@ -3,13 +3,17 @@ import { ValidatedRequest } from "../middlewares/validate.middleware.js";
 import { createUserService, confirmEmailService, acceptLegalService, loginUserService, refreshTokenService, logoutService, forgotPasswordService, resetPasswordService } from "../services/user.service.js";
 import { forgotPasswordBodyInput, resetPasswordBodyInput, loginUserSchema, registerUserSchema } from "../schemas/user.schema.js";
 import { UserRoleEnum } from "../utils/enum.js";
-
+import fs from "fs";
+import path from "path";
 
 export const registerController = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
+    let newFilePath: string | null = null;
+    let profilPictureUrl: string | undefined;
+
     try {
         const { confirmPassword, ...registerData } = registerUserSchema.parse(req.body);
 
@@ -18,7 +22,12 @@ export const registerController = async (
             role: UserRoleEnum.USER
         }
 
-        const { user } = await createUserService(data);
+        if (req.file) {
+            newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
+            profilPictureUrl = `/uploads/${req.file.filename}`;
+        }
+
+        const { user } = await createUserService(data, profilPictureUrl);
 
         return res.status(201).json({
             user: {
@@ -28,6 +37,9 @@ export const registerController = async (
             message: "Utilisateur créé avec succès ! Veuillez confirmer votre adresse email pour activer votre compte.",
         });
     } catch (error) {
+        if (newFilePath && fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
         if (error instanceof Error &&
             error.message === "USER_ALREADY_EXISTS") {
             return res.status(409).json({

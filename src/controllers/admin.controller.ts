@@ -5,6 +5,8 @@ import { AdminRegisterInput, adminRegisterSchema, UserStatusParamsInput, UserSta
 import { getAllUsersService, getUserService, setUserActiveStatusService, deleteUserService } from "../services/admin.service.js";
 import { UserRoleEnum } from "../utils/enum.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
+import fs from "fs";
+import path from "path";
 
 export const getAllUsersController = async (
     req: Request,
@@ -26,14 +28,8 @@ export const getUserController = async (
     next: NextFunction
 ) => {
     try {
-        // Changement ici :
-        // const idUser = parseInt(req.params.idUser, 10);
-        const idUser = req.params.id;
-         // Faut-il faire une vérif qu'on a bien un user ici ?
 
-        // if (isNaN(idUser)) {
-        //     return res.status(400).json({ message: "idUser invalide" });
-        // }
+        const idUser = req.params.id;
 
         const user = await getUserService(idUser);
 
@@ -54,10 +50,11 @@ export const adminCreateUserController = async (
     res: Response,
     next: NextFunction
 ) => {
+    let newFilePath: string | null = null;
+    let profilPictureUrl: string | undefined;
     try {
 
         const { confirmPassword, ...registerData } = req.body;
-        // const registerData = adminRegisterSchema.parse(req.body);
 
         const data = {
             ...registerData,
@@ -65,7 +62,12 @@ export const adminCreateUserController = async (
             privacyConsent: null,
         }
 
-        const { user } = await createUserService(data);
+        if (req.file) {
+            newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
+            profilPictureUrl = `/uploads/${req.file.filename}`;
+        }
+
+        const { user } = await createUserService(data, profilPictureUrl);
 
 
         res.status(201).json({
@@ -73,6 +75,9 @@ export const adminCreateUserController = async (
             message: "Utilisateur créé avec succès ! Veuillez confirmer votre adresse email pour activer votre compte."
         })
     } catch (error) {
+        if (newFilePath && fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
         if (error instanceof Error &&
             error.message === "USER_ALREADY_EXISTS") {
             return res.status(409).json({
@@ -94,27 +99,44 @@ export const updateUserController = async ( // Changement ici
     res: Response,
     next: NextFunction
 ) => {
+    let newFilePath: string | null = null;
+    let profilPictureUrl: string | null | undefined;
+
     try {
 
-        // Changement ici
-        // const idUser = parseInt(req.params.idUser, 10);
         const idUser = req.params.id;
-         // Faut-il faire une vérif qu'on a bien un user ici ?
-
-        // if (isNaN(idUser)) {
-        //     return res.status(400).json({ message: "idUser invalide" });
-        // }
 
         const data: UpdateUser = req.body;
 
         const idAdmin = req.user!.idUser;
         if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
 
-        const userProfile = await updateUserService(idUser, data, idAdmin);
+        // Changement d'image 
+        if (req.file) {
+            newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
+            profilPictureUrl = `/uploads/${req.file.filename}`;
+        }
+        // Suppression explicite
+        else if (req.body.profilPictureUrl === "null") {
+            profilPictureUrl = null
+        }
 
-        res.status(200).json(userProfile);
+        const { user, emailChanged, oldProfilPictureUrl } = await updateUserService(idUser, data, profilPictureUrl, idAdmin);
+
+        if (
+            profilPictureUrl !== undefined && // on a demandé un changement
+            oldProfilPictureUrl // il y avait une ancienne image
+        ) {
+            const oldPath = path.join(process.cwd(), oldProfilPictureUrl);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
+
+        res.status(200).json({ user, emailChanged });
 
     } catch (error) {
+        if (newFilePath && fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
         if (error instanceof Error) {
             if (error.message === "USER_NOT_FOUND") {
                 return res.status(404).json({ message: "Aucun utilisateur trouvé" })
@@ -187,19 +209,19 @@ export const deleteUserController = async (
         if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
 
         await deleteUserService(idUser, idAdmin);
-        
+
         return res.status(200).json({ message: "Compte anonymisé avec succès" });
 
     } catch (error) {
-        if(error instanceof Error) {
-            if(error.message === "USER_NOT_FOUND") {
-                 return res.status(404).json({ message: "Utilisateur introuvable" });
+        if (error instanceof Error) {
+            if (error.message === "USER_NOT_FOUND") {
+                return res.status(404).json({ message: "Utilisateur introuvable" });
             }
-             if(error.message === "ADMIN_REQUIRED_TO_DELETE_ACCOUNT") {
-                  return res.status(401).json({ message: "Admin requis pour cette action" });
+            if (error.message === "ADMIN_REQUIRED_TO_DELETE_ACCOUNT") {
+                return res.status(401).json({ message: "Admin requis pour cette action" });
             }
-             if(error.message === "CANNOT_DELETE_SELF_ACCOUNT") {
-                 return res.status(400).json({ message: "Vous ne pouvez pas supprimer votre propre compte" });
+            if (error.message === "CANNOT_DELETE_SELF_ACCOUNT") {
+                return res.status(400).json({ message: "Vous ne pouvez pas supprimer votre propre compte" });
             }
         }
         next(error);
