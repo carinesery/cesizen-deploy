@@ -4,6 +4,8 @@ import { getProfileService } from "../services/profile.service.js";
 import { updateUserService, updatePasswordService, deleteAccountService } from "../services/profile.service.js";
 import { UpdatedProfileUserInput, UpdatedPasswordInput } from "../schemas/profile.schema.js";
 import { UserRoleEnum } from "../utils/enum.js";
+import fs from "fs";
+import path from "path";
 
 export const getProfileController = async (
     req: AuthRequest,
@@ -39,13 +41,36 @@ export const updateProfileController = async (
     res: Response,
     next: NextFunction
 ) => {
+
+    let newFilePath: string | null = null;
+    let profilPictureUrl: string | null | undefined = undefined;
+
     try {
 
         const { idUser } = req.user!;
 
         const data: UpdatedProfileUserInput = req.body;
 
-        const { user, emailChanged } = await updateUserService(idUser, data);
+
+        // Changement d'image 
+        if (req.file) {
+            newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
+            profilPictureUrl = `/uploads/${req.file.filename}`;
+        }
+        // Suppression explicite
+        else if (req.body.profilPictureUrl === "null") {
+            profilPictureUrl = null
+        }
+
+        const { user, emailChanged, oldProfilPictureUrl } = await updateUserService(idUser, data, profilPictureUrl);
+
+        if (
+            profilPictureUrl !== undefined && // on a demandé un changement
+            oldProfilPictureUrl // il y avait une ancienne image
+        ) {
+            const oldPath = path.join(process.cwd(), oldProfilPictureUrl);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
 
         return res.status(200).json({
             message: emailChanged
@@ -54,6 +79,9 @@ export const updateProfileController = async (
             user
         })
     } catch (error) {
+        if (newFilePath && fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
         if (error instanceof Error) {
             if (error.message === "USER_NOT_FOUND") {
                 return res.status(404).json({ message: "Aucun utilisateur trouvé" })
@@ -88,7 +116,7 @@ export const updatePasswordController = async (
 ) => {
     try {
         const { idUser } = req.user!;
-        const { confirmNewPassword , ...data } = req.body as UpdatedPasswordInput;
+        const { confirmNewPassword, ...data } = req.body as UpdatedPasswordInput;
 
         await updatePasswordService(idUser, data);
 
@@ -138,7 +166,7 @@ export const deleteAccountController = async (
 
         const roleUser = req.user!.role;
 
-         // Empêcher les admins de supprimer leur compte par mégarde
+        // Empêcher les admins de supprimer leur compte par mégarde
         if (roleUser === UserRoleEnum.ADMIN) {
             return res.status(403).json({
                 message: "Un administrateur ne peut pas supprimer son propre compte via cette route."
@@ -147,10 +175,10 @@ export const deleteAccountController = async (
 
         await deleteAccountService(idUser);
 
-        return res.status(200).json({ message: "Votre compte a été désactivé. Vous allez être déconnecté dans quelques instants"})
+        return res.status(200).json({ message: "Votre compte a été désactivé. Vous allez être déconnecté dans quelques instants" })
 
-    } catch(error) {
-         if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+    } catch (error) {
+        if (error instanceof Error && error.message === "USER_NOT_FOUND") {
             return res.status(404).json({ message: "Aucun utilisateur trouvé" })
         }
         if (error instanceof Error && error.message === "ACCOUNT_INACTIVE") {

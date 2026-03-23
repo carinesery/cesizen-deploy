@@ -12,10 +12,6 @@ export const adminRegisterSchema = z.object({
         .string()
         .min(3, "Le nom d'utilisateur doit faire au moins 3 caractères")
         .max(50, "Le nom d'utilisateur ne doit pas dépasser 50 caractères"),
-    profilPictureUrl: z
-        .url()
-        .max(500, "L'url ne doit pas dépasser 500 caractères")
-        .optional(),
     email: z
         .email()
         .max(255, "L'email ne doit pas dépasser 255 caractères"),
@@ -46,8 +42,9 @@ export const adminUpdateUserBodySchema = z.object({
         .max(50, "Le nom d'utilisateur ne doit pas dépasser 50 caractères")
         .optional(),
     profilPictureUrl: z
-        .url()
+        .string()
         .max(500, "L'url ne doit pas dépasser 500 caractères")
+        .nullable()
         .optional(),
     email: z
         .email()

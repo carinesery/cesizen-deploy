@@ -11,13 +11,13 @@ type CreateUser = {
     username: string;
     email: string;
     password: string;
-    profilPictureUrl?: string;
+    // profilPictureUrl?: string;
     role: UserRoleEnum,
     termsConsent: boolean | null;
     privacyConsent: boolean | null;
 }
 
-export const createUserService = async (data: CreateUser) => {
+export const createUserService = async (data: CreateUser, profilPictureUrl: string | undefined) => {
     const { username, email, password, role } = data;
 
     const userExists = await prisma.user.findUnique({
@@ -41,7 +41,7 @@ export const createUserService = async (data: CreateUser) => {
             email,
             passwordHash,
             role,
-            profilPictureUrl: data.profilPictureUrl,
+            profilPictureUrl,
             termsConsentAt: data.termsConsent === true ? now : null,
             privacyConsentAt: data.privacyConsent === true ? now : null,
             isActive: false,

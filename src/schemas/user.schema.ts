@@ -5,10 +5,10 @@ export const registerUserSchema = z.object({
         .string()
         .min(3, "Le nom d'utilisateur doit faire au moins 3 caractères")
         .max(50, "Le nom d'utilisateur ne doit pas dépasser 50 caractères"),
-    profilPictureUrl: z
-        .url()
-        .max(500, "L'url ne doit pas dépasser 500 caractères")
-        .optional(),
+    // profilPictureUrl: z
+    //     .url()
+    //     .max(500, "L'url ne doit pas dépasser 500 caractères")
+    //     .optional(),
     email: z
         .email()
         .max(255, "L'email ne doit pas dépasser 255 caractères"),
@@ -18,8 +18,14 @@ export const registerUserSchema = z.object({
         .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s]).{8,50}$/, "Le mot de passe est invalide")
         .max(50, "Le mot de passe ne doit pas dépasser 50 caractères"),
     confirmPassword: z.string(),
-    termsConsent: z.literal(true, "Vous devez accepter les conditions"),
-    privacyConsent: z.literal(true, "Vous devez accepter la politique de confidentialité"),
+    termsConsent: z.preprocess((val) => val === "true" || val === true, z.literal(true, {
+        message: "Vous devez accepter les conditions d'utilisation"
+    })
+    ),
+    privacyConsent: z.preprocess((val) => val === "true" || val === true, z.literal(true, {
+        message: "Vous devez accepter la politique de confidentialité"
+    })
+    ),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
     path: ["confirmPassword"],
@@ -52,7 +58,7 @@ export const forgotPasswordBodySchema = z.object({
         .max(50, "L'email ne doit pas dépasser 50 caractères"),
 })
 
-export type forgotPasswordBodyInput = z.infer <typeof forgotPasswordBodySchema>; 
+export type forgotPasswordBodyInput = z.infer<typeof forgotPasswordBodySchema>;
 
 export const resetPasswordBodySchema = z.object({
     token: z.string(),
@@ -67,4 +73,4 @@ export const resetPasswordBodySchema = z.object({
     path: ["confirmPassword"],
 });
 
-export type resetPasswordBodyInput = z.infer <typeof resetPasswordBodySchema>; 
+export type resetPasswordBodyInput = z.infer<typeof resetPasswordBodySchema>; 

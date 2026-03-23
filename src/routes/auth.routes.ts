@@ -3,10 +3,11 @@ import { registerController, confirmationEmailController, acceptLegalController,
 import { validate } from "../middlewares/validate.middleware.js";
 import { registerUserSchema, confirmEmailSchema, acceptLegalSchema, loginUserSchema, forgotPasswordBodySchema, resetPasswordBodySchema } from "../schemas/user.schema.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/upload.middleware.js";
 
 const router = Router();
 
-router.post("/register", validate(registerUserSchema, "body"), registerController);
+router.post("/register", upload.single("profilPictureUrl"), validate(registerUserSchema, "body"), registerController);
 router.get("/confirm-email", validate(confirmEmailSchema, "query"), confirmationEmailController);
 router.post("/accept-legal", validate(acceptLegalSchema, "body"), acceptLegalController); 
 router.post("/login", validate(loginUserSchema, "body"), loginController);

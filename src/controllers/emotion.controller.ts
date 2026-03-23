@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { GetEmotionParamsInput, CreateEmotionInput, UpdateEmotionParamsInput, UpdateEmotionBodyInput, DeleteEmotionParamsInput } from "../schemas/emotion.schema.js";
 import { getAllEmotionsService, getEmotionService, createEmotionService, updateEmotionService, deleteEmotionService } from "../services/emotion.service.js";
+import fs from "fs";
+import path from "path";
 
 
 export const getAllEmotionsController = async (
@@ -58,11 +60,20 @@ export const createEmotionController = async (
     res: Response,
     next: NextFunction
 ) => {
+
+    let newFilePath: string | null = null;
+    let iconUrl: string | undefined;
+
     try {
 
         const data = req.body;
 
-        const emotionStored = await createEmotionService(data);
+        if (req.file) {
+            newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
+            iconUrl = `/uploads/${req.file.filename}`;
+        }
+
+        const emotionStored = await createEmotionService(data, iconUrl);
 
         return res.status(201).json({
             data: emotionStored,
@@ -70,29 +81,36 @@ export const createEmotionController = async (
         })
 
     } catch (error) {
+        if (newFilePath && fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
         if (error instanceof Error) {
             if (error.message === "EMOTION_ALREADY_EXISTS") {
-                return res.status(409).json({ 
+                return res.status(409).json({
                     // error: "EMOTION_ALREADY_EXISTS",
-                    message: "Cette émotion existe déjà" })
+                    message: "Cette émotion existe déjà"
+                })
             }
 
             if (error.message === "LEVEL_1_CANNOT_HAVE_PARENT") {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     // error: "LEVEL_1_CANNOT_HAVE_PARENT",
-                    message: "Une émotion de niveau 1 ne peut pas avoir de parent" })
+                    message: "Une émotion de niveau 1 ne peut pas avoir de parent"
+                })
             }
 
             if (error.message === "LEVEL_2_REQUIRES_PARENT") {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     // error: "LEVEL_2_REQUIRES_PARENT",
-                    message: "Une émotion de niveau 2 doit avoir un parent" })
+                    message: "Une émotion de niveau 2 doit avoir un parent"
+                })
             }
 
             if (error.message === "PARENT_EMOTION_NOT_FOUND") {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     // error: "PARENT_EMOTION_NOT_FOUND",
-                    message: "L'émotion parent n'existe pas" })
+                    message: "L'émotion parent n'existe pas"
+                })
             }
         }
         next(error);
@@ -104,12 +122,33 @@ export const updateEmotionController = async (
     res: Response,
     next: NextFunction
 ) => {
+    let newFilePath: string | null = null;
+    let iconUrl: string | null | undefined = undefined;
+
     try {
         const { id } = req.params;
 
         const data = req.body;
 
-        const emotionUpdated = await updateEmotionService(id, data);
+        // Changement d'image 
+        if (req.file) {
+            newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
+            iconUrl = `/uploads/${req.file.filename}`;
+        }
+        // Suppression explicite
+        else if (req.body.iconUrl === "null") {
+            iconUrl = null
+        }
+
+        const { emotionUpdated, oldIconUrl } = await updateEmotionService(id, data, iconUrl);
+
+        if (
+            iconUrl !== undefined && // on a demandé un changement
+            oldIconUrl // il y avait une ancienne image
+        ) {
+            const oldPath = path.join(process.cwd(), oldIconUrl);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
 
         return res.status(200).json({
             data: emotionUpdated,
@@ -117,6 +156,9 @@ export const updateEmotionController = async (
         })
 
     } catch (error) {
+        if (newFilePath && fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
         if (error instanceof Error) {
             if (error.message === "EMOTION_NOT_FOUND") {
                 return res.status(404).json({
@@ -176,7 +218,7 @@ export const deleteEmotionController = async (
         await deleteEmotionService(id);
 
         return res.status(200).json({ message: "L'émotion a été supprimée avec succès" });
-        
+
     } catch (error) {
         if (error instanceof Error) {
             if (error.message === "EMOTION_NOT_FOUND") {

@@ -7,8 +7,9 @@ export const updatedProfileUserSchema = z.object({
         .max(50, "Le nom d'utilisateur ne doit pas dépasser 50 caractères")
         .optional(),
     profilPictureUrl: z
-        .url()
+        .string()
         .max(500, "L'url ne doit pas dépasser 500 caractères")
+        .nullable()
         .optional(),
     email: z
         .email()

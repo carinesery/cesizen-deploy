@@ -10,7 +10,7 @@ export type GetEmotionParamsInput = z.infer<typeof getEmotionParamsSchema>;
 export const createEmotionSchema = z.object({
     title: z.string().min(1, "Le titre doit comporter au moins 1 caractère").max(50, "Le titre ne doit dépasser 50 caractères"),
     description: z.string().max(1000, "La description ne doit pas dépasser 1000 caractères").optional(),
-    iconUrl: z.string().max(255, "L'url ne doit pas dépasser 255 caractères").optional(),
+    // iconUrl: z.string().max(255, "L'url ne doit pas dépasser 255 caractères").optional(),
     level: z.enum(LevelEmotionEnum),
     parentEmotionId: z.cuid().optional()
 })
@@ -26,7 +26,7 @@ export type UpdateEmotionParamsInput = z.infer<typeof updateEmotionParamsSchema>
 export const updateEmotionBodySchema = z.object({
     title: z.string().min(1, "Le titre doit comporter au moins 1 caractère").max(50, "Le titre ne doit dépasser 50 caractères").optional(),
     description: z.string().max(1000, "La description ne doit pas dépasser 1000 caractères").optional(),
-    iconUrl: z.string().max(255, "L'url ne doit pas dépasser 255 caractères").optional(),
+    iconUrl: z.string().max(255, "L'url ne doit pas dépasser 255 caractères").nullable().optional(),
     level: z.enum(LevelEmotionEnum).optional(),
     parentEmotionId: z.cuid().nullable().optional()
 }).refine(

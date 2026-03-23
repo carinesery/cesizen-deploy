@@ -41,12 +41,12 @@ export const getProfileService = async (idUser: string) => {
 export type UpdateUser = {
     username?: string;
     email?: string;
-    profilPictureUrl?: string;
+    profilPictureUrl?: string | null;
     role?: UserRoleEnum,
 }
 
 
-export const updateUserService = async (idUser: string, data: UpdateUser, idAdmin?: string) => {
+export const updateUserService = async (idUser: string, data: UpdateUser, profilPictureUrl: string | null | undefined, idAdmin?: string) => {
 
     const user = await prisma.user.findUnique(
         { where: { idUser: idUser } }
@@ -99,12 +99,13 @@ export const updateUserService = async (idUser: string, data: UpdateUser, idAdmi
 
         updatedData.role = data.role;
     }
+
+    const oldProfilPictureUrl = user.profilPictureUrl;
+
     // Mise à jour de l'image de profil : 
-    if (data.profilPictureUrl) {
-        updatedData.profilPictureUrl = data.profilPictureUrl;
+    if (profilPictureUrl !== undefined) {
+        updatedData.profilPictureUrl = profilPictureUrl;
     }
-
-
 
     if (Object.keys(updatedData).length === 0) {
         throw new Error("NO_DATA_TO_UPDATE");
@@ -144,7 +145,8 @@ export const updateUserService = async (idUser: string, data: UpdateUser, idAdmi
             isActive: updatedUser.isActive,
             role: updatedUser.role
         },
-        emailChanged
+        emailChanged,
+        oldProfilPictureUrl
     };
 }
 

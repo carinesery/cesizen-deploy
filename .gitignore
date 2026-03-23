@@ -21,3 +21,6 @@ npm-debug.log*
 # Prisma generated
 src/generated/
 src/prisma/migrations
+
+# Upload
+/uploads
