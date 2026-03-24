@@ -23,6 +23,7 @@ export const updateCategoryBodySchema = z.object({
     description: z
         .string()
         .max(1000, "Le résumé ne doit pas dépasser 1000 caractères")
+        .nullable()
         .optional(),
    iconUrl: z
         .string()

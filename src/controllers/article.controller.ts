@@ -49,10 +49,6 @@ export const postArticle = async (
     try {
         const authorId = req.user!.idUser;
 
-        // if (req.body.categories && typeof req.body.categories === "string") {
-        //     req.body.categories = JSON.parse(req.body.categories);
-        // }
-
         const data = req.body as CreateArticleBodyInput;
 
         let presentationImageUrl: string | null = null;
@@ -70,11 +66,18 @@ export const postArticle = async (
         if (newFilePath && fs.existsSync(newFilePath)) {
             fs.unlinkSync(newFilePath);
         }
-        if (error instanceof Error &&
-            error.message === "ARTICLE_SLUG_ALREADY_EXISTS") {
-            return res.status(409).json({
-                message: "Un article avec ce titre existe déjà",
-            });
+
+        if(error instanceof Error) {
+            if (error.message === "ARTICLE_SLUG_ALREADY_EXISTS") {
+                return res.status(409).json({
+                    message: "Un article avec ce titre existe déjà",
+                });
+            }
+            if (error.message.startsWith("INVALID_CATEGORIES")) {
+                return res.status(400).json({
+                    message: error.message,
+                });
+            }
         }
         next(error);
     }
@@ -92,10 +95,6 @@ export const patchArticle = async (
         const authorId = req.user!.idUser;
 
         const { slug } = req.params as { slug: string };
-
-        // if (req.body.categories && typeof req.body.categories === "string") {
-        //     req.body.categories = JSON.parse(req.body.categories);
-        // }
 
         const data = req.body as UpdateArticleBodyInput;
 
@@ -126,17 +125,22 @@ export const patchArticle = async (
         if (newFilePath && fs.existsSync(newFilePath)) {
             fs.unlinkSync(newFilePath);
         }
-        if (error instanceof Error &&
-            error.message === "ARTICLE_NOT_FOUND") {
-            return res.status(404).json({
-                message: "Aucun article n'a été trouvé"
-            });
-        }
-        if (error instanceof Error &&
-            error.message === "ARTICLE_SLUG_ALREADY_EXISTS") {
-            return res.status(409).json({
-                message: "Un article avec ce titre existe déjà",
-            });
+        if(error instanceof Error) {
+            if (error.message === "ARTICLE_NOT_FOUND") {
+                return res.status(404).json({
+                    message: "Aucun article n'a été trouvé"
+                });
+            }
+            if (error.message === "ARTICLE_SLUG_ALREADY_EXISTS") {
+                return res.status(409).json({
+                    message: "Un article avec ce titre existe déjà",
+                });
+            }
+            if (error.message.startsWith("INVALID_CATEGORIES")) {
+                return res.status(400).json({
+                    message: error.message,
+                });
+            }
         }
         next(error);
     }

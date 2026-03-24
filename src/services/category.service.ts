@@ -90,7 +90,7 @@ export const updateCategoryService = async (oldSlug: string, data: UpdateCategor
         data: {
             title: data.title ?? category.title,
             slug: newSlug,
-            description: data.description ?? category.description,
+            description: data.description !== undefined ? data.description : category.description,
             iconUrl: iconUrl === undefined
                 ? category.iconUrl
                 : iconUrl,

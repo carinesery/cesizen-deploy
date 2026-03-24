@@ -8,10 +8,13 @@ export interface ValidatedRequest<Q = any> extends Request {
 export const validate =
   (schema: ZodType, source: "body" | "query" | "params") =>
   (req: ValidatedRequest, res: Response, next: NextFunction) => {
+
+    console.log(`DEBUG: req.${source} =`, req[source]); // ← <--- ICI
     const result = schema.safeParse(req[source]);
 
     if (!result.success) {
       const treeErrors = z.treeifyError(result.error);
+
 
       return res.status(400).json({
         message: "Validation error",
@@ -23,5 +26,7 @@ export const validate =
      } else {
        req[source] = result.data;
      }
-    next();
+
+     next();
+
   };
