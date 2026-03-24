@@ -1,0 +1,49 @@
+import { z } from "zod";
+
+export const createCategoryBodySchema = z.object({
+    title: z
+        .string()
+        .min(3, "Le titre doit faire au moins 3 caractères")
+        .max(200, "Le titre ne doit pas dépasser 200 caractères"),
+    description: z
+        .string()
+        .max(1000, "Le résumé ne doit pas dépasser 1000 caractères")
+        .optional(),
+})
+
+export type CreateCategoryBodyInput = z.infer<typeof createCategoryBodySchema>;
+
+
+export const updateCategoryBodySchema = z.object({
+    title: z
+        .string()
+        .min(3, "Le titre doit faire au moins 3 caractères")
+        .max(200, "Le titre ne doit pas dépasser 200 caractères")
+        .optional(),
+    description: z
+        .string()
+        .max(1000, "Le résumé ne doit pas dépasser 1000 caractères")
+        .nullable()
+        .optional(),
+   iconUrl: z
+        .string()
+        .max(255, "L'URL ne doit pas dépasser 255 caractères")
+        .nullable()
+        .optional(),
+});
+
+export type UpdateCategoryBodyInput = z.infer<typeof updateCategoryBodySchema>;
+
+
+/*
+model Category {
+  idCategory  String @id @default (cuid()) // String
+  title       String @unique @db.VarChar(50)
+  slug        String @unique @db.VarChar(60)
+  description String ? @db.Text
+  inconUrl    String ? @db.VarChar(255)
+
+  //Relation
+  articles Article[]
+}
+  */
