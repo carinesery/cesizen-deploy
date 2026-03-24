@@ -4,7 +4,7 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { roleMiddleware } from "../middlewares/role.middleware.js";
 import { UserRoleEnum } from "../utils/enum.js";
 import { upload } from "../middlewares/upload.middleware.js";
-import { createCategoryController, updateCategoryController, getAllCategoriesController, getCategoryController } from "../controllers/category.controller.js";
+import { createCategoryController, updateCategoryController, getAllCategoriesController, getCategoryController, deleteCategoryController } from "../controllers/category.controller.js";
 import { createCategoryBodySchema, updateCategoryBodySchema } from "../schemas/category.schema.js";
 
 
@@ -14,5 +14,5 @@ router.get("/", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), getAllCatego
 router.get("/:slug", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), getCategoryController);
 router.post("/", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), upload.single("iconUrl"), validate(createCategoryBodySchema, "body"), createCategoryController);
 router.patch("/:slug", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), upload.single("iconUrl"), validate(updateCategoryBodySchema, "body"), updateCategoryController);
-
+router.delete("/slug", authMiddleware, roleMiddleware(UserRoleEnum.ADMIN), deleteCategoryController);
 export default router;

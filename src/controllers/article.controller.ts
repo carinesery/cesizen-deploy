@@ -1,4 +1,4 @@
-import { getPublicArticles, readArticle, createArticle, updateArticle } from "../services/article.service.js";
+import { getPublicArticles, readArticle, createArticle, updateArticle, deleteArticleService } from "../services/article.service.js";
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { CreateArticleBodyInput, UpdateArticleBodyInput } from "../schemas/article.schema.js";
@@ -49,6 +49,10 @@ export const postArticle = async (
     try {
         const authorId = req.user!.idUser;
 
+        // if (req.body.categories && typeof req.body.categories === "string") {
+        //     req.body.categories = JSON.parse(req.body.categories);
+        // }
+
         const data = req.body as CreateArticleBodyInput;
 
         let presentationImageUrl: string | null = null;
@@ -88,6 +92,10 @@ export const patchArticle = async (
         const authorId = req.user!.idUser;
 
         const { slug } = req.params as { slug: string };
+
+        // if (req.body.categories && typeof req.body.categories === "string") {
+        //     req.body.categories = JSON.parse(req.body.categories);
+        // }
 
         const data = req.body as UpdateArticleBodyInput;
 
@@ -133,3 +141,21 @@ export const patchArticle = async (
         next(error);
     }
 }
+
+export const deleteArticleController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    const { slug } = req.params as { slug: string };
+
+    try {
+        const result = await deleteArticleService(slug);
+        return res.status(200).json(result);
+    } catch (error) {
+        if (error instanceof Error && error.message === "ARTICLE_NOT_FOUND") {
+            return res.status(404).json({ message: "Article non trouvé" });
+        }
+        next(error);
+    }
+};

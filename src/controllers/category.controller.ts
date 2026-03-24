@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { CreateCategoryBodyInput, UpdateCategoryBodyInput } from "../schemas/category.schema.js";
-import { getAllCategoriesService, getCategoryService, createCategoryService, updateCategoryService } from "../services/category.service.js";
+import { getAllCategoriesService, getCategoryService, createCategoryService, updateCategoryService, deleteCategoryService } from "../services/category.service.js";
 import fs from "fs";
 import path from "path";
 
@@ -21,7 +21,7 @@ export const getAllCategoriesController = async (
     }
 }
 
-// getCategoryController
+
 export const getCategoryController = async (
     req: AuthRequest,
     res: Response,
@@ -138,3 +138,21 @@ export const updateCategoryController = async (
         next(error);
     }
 }
+
+export const deleteCategoryController = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    const { slug } = req.params as { slug: string };
+
+    try {
+        const result = await deleteCategoryService(slug);
+        return res.status(200).json(result);
+    } catch (error) {
+        if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") {
+            return res.status(404).json({ message: "Catégorie non trouvée" });
+        }
+        next(error);
+    }
+};

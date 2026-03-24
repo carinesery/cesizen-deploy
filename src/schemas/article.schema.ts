@@ -20,6 +20,7 @@ export const createArticleBodySchema = z.object({
         .max(10000, "Le contenu ne doit pas dépasser 10000 caractères")
         .optional(),
     status: articleStatusEnum.optional(),
+    categories: z.array(z.string()).optional(),
 });
 
 export type CreateArticleBodyInput = z.infer<typeof createArticleBodySchema>;
@@ -46,6 +47,8 @@ export const updateArticleBodySchema = z.object({
         .nullable()
         .optional(),
     status: articleStatusEnum.optional(),
+     // 👇 AJOUT
+    categories: z.array(z.string()).optional(),
 });
 
 export type UpdateArticleBodyInput = z.infer<typeof updateArticleBodySchema>;

@@ -62,6 +62,12 @@ export const createArticle = async (data: CreateArticleBodyInput, presentationIm
             authorId,
             updatedAt: null,
             status: data.status ?? "DRAFT",
+            // 👇 AJOUT ICI
+            categories: data.categories
+                ? {
+                    connect: data.categories.map((slug) => ({ slug })),
+                }
+                : undefined,
         },
     });
 };
@@ -85,9 +91,8 @@ export const updateArticle = async (oldSlug: string, data: UpdateArticleBodyInpu
         };
     };
 
-    // J'ajoute : 
     const oldPresentationImageUrl = article.presentationImageUrl;
-    
+
     const updatedArticle = await prisma.article.update({
         where: { slug: oldSlug },
         data: {
@@ -101,13 +106,36 @@ export const updateArticle = async (oldSlug: string, data: UpdateArticleBodyInpu
             updatedAt: new Date(),
             updatedById: authorId,
             status: data.status ?? article.status,
+            // 👇 AJOUT ICI
+            categories: data.categories
+                ? {
+                    set: data.categories.map((slug) => ({ slug })),
+                }
+                : undefined,
         },
     });
 
     return {
-        updatedArticle, 
+        updatedArticle,
         oldPresentationImageUrl
     }
 
+};
+
+export const deleteArticleService = async (slug: string) => {
+    
+    const article = await prisma.article.findUnique({
+        where: { slug },
+    });
+
+    if (!article) {
+        throw new Error("ARTICLE_NOT_FOUND");
+    }
+
+    await prisma.article.delete({
+        where: { slug },
+    });
+
+    return { message: "Article supprimé" };
 };
 

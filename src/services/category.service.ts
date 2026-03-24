@@ -103,3 +103,19 @@ export const updateCategoryService = async (oldSlug: string, data: UpdateCategor
     }
 
 };
+
+export const deleteCategoryService = async (slug: string) => {
+    const category = await prisma.category.findUnique({
+        where: { slug },
+    });
+
+    if (!category) {
+        throw new Error("CATEGORY_NOT_FOUND");
+    }
+
+    await prisma.category.delete({
+        where: { slug },
+    });
+
+    return { message: "Catégorie supprimée" };
+};
