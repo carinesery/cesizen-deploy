@@ -61,7 +61,7 @@ model Category {
   title       String  @unique @db.VarChar(50)
   slug        String  @unique @db.VarChar(60)
   description String? @db.Text
-  inconUrl    String? @db.VarChar(255)
+  iconUrl    String? @db.VarChar(255)
 
   //Relation
   articles Article[]
