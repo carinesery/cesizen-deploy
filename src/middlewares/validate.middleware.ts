@@ -9,7 +9,7 @@ export const validate =
   (schema: ZodType, source: "body" | "query" | "params") =>
   (req: ValidatedRequest, res: Response, next: NextFunction) => {
 
-    console.log(`DEBUG: req.${source} =`, req[source]); // ← <--- ICI
+    // console.log(`DEBUG: req.${source} =`, req[source]); // ← <--- ICI
     const result = schema.safeParse(req[source]);
 
     if (!result.success) {

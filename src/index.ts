@@ -1,5 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+import helmet from "helmet";
 import articleRoutes from "./routes/article.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -10,8 +12,23 @@ import statsRoutes from "./routes/stats.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 
 import { errorMiddleware } from "./middlewares/error.middleware.js";
+import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 
-const app = express(); 
+const app = express();
+
+// 🛡️ Sécurité
+app.use(helmet());
+
+// 🌐 CORS - autorise le frontend React
+app.use(cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+// 🚦 Rate limiting global
+app.use(globalLimiter);
 
 app.use(express.json());
 app.use(cookieParser());
