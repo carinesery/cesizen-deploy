@@ -62,7 +62,8 @@ export const createUserService = async (data: CreateUser, profilPictureUrl: stri
 
     await sendConfirmationEmail(user.email, confirmUrl);
 
-    return { user };
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword };
 };
 
 export const confirmEmailService = async (token: string) => {

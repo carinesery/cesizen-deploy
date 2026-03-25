@@ -30,7 +30,6 @@ export const getUserController = async (
     try {
 
         const idUser = req.params.id;
-
         const user = await getUserService(idUser);
 
         return res.status(200).json(user);
@@ -69,11 +68,7 @@ export const adminCreateUserController = async (
 
         const { user } = await createUserService(data, profilPictureUrl);
 
-
-        res.status(201).json({
-            userId: user.idUser,
-            message: "Utilisateur créé avec succès ! Veuillez confirmer votre adresse email pour activer votre compte."
-        })
+        return res.status(201).json(user);  // ✅ RESTful: 201 Created + l'objet user créé
     } catch (error) {
         if (newFilePath && fs.existsSync(newFilePath)) {
             fs.unlinkSync(newFilePath);
@@ -131,7 +126,10 @@ export const updateUserController = async ( // Changement ici
             if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
         }
 
-        res.status(200).json({ user, emailChanged });
+        // ✅ Spread operator: étend user + ajoute emailChanged au même niveau
+        // Au lieu de { user: {...}, emailChanged: true }
+        // On a { id: ..., email: ..., emailChanged: true }
+        return res.status(200).json({ ...user, emailChanged });
 
     } catch (error) {
         if (newFilePath && fs.existsSync(newFilePath)) {
@@ -170,19 +168,25 @@ export const setUserActiveStatusController = async (
     next: NextFunction
 ) => {
     try {
-        // const idUser = parseInt(req.params.idUser, 10);
+
         const idUser = req.params.id;
-        // Faut-il faire une vérif qu'on a bien un user ici ?
+
         const data: UserStatusBodyInput = req.body;
 
         const idAdmin = req.user!.idUser;
         if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
 
-        await setUserActiveStatusService(idUser, data, idAdmin);
+        const updatedAccount = await setUserActiveStatusService(idUser, data, idAdmin);
 
+        if (!updatedAccount) {
+            return res.status(404).json({ message: "Utilisateur introuvable après mise à jour" });
+        }
 
-        const action = data.isActive ? "réactivé" : "désactivé";
-        return res.status(200).json({ message: `Utilisateur ${action} avec succès` });
+        return res.status(200).json({  // ✅ RESTful: l'user avec son nouveau statut
+            id: updatedAccount.idUser,
+            isActive: updatedAccount.isActive,
+            disabledAt: updatedAccount.disabledAt
+        });
     } catch (error) {
         if (error instanceof Error && error.message === "USER_NOT_FOUND") {
             return res.status(404).json({ message: "Utilisateur introuvable" });
@@ -200,17 +204,19 @@ export const deleteUserController = async (
     next: NextFunction
 ) => {
     try {
-        // Changement ici : 
-        // const idUser = parseInt(req.params.idUser, 10);
+
         const idUser = req.params.id;
-        // Faut-il faire une vérif qu'on a bien un user ici ?
+
         const idAdmin = req.user!.idUser;
 
         if (!idAdmin) return res.status(401).json({ message: "Admin non authentifié" });
 
-        await deleteUserService(idUser, idAdmin);
+        const deletedUser = await deleteUserService(idUser, idAdmin);
 
-        return res.status(200).json({ message: "Compte anonymisé avec succès" });
+        return res.status(200).json({  // ✅ RESTful: 200 + l'user supprimé pour UX
+            id: deletedUser.idUser,
+            deletedAt: deletedUser.deletedAt
+        });
 
     } catch (error) {
         if (error instanceof Error) {
