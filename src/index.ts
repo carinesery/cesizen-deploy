@@ -1,7 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import helmet from "helmet";
+import helmet, { crossOriginResourcePolicy } from "helmet";
 import articleRoutes from "./routes/article.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -17,7 +17,10 @@ import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 const app = express();
 
 // 🛡️ Sécurité
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}
+));
 
 // 🌐 CORS - autorise le frontend React
 app.use(cors({

@@ -58,7 +58,15 @@ export const createUserService = async (data: CreateUser, profilPictureUrl: stri
         { expiresIn: "1d" }
     );
 
-    const confirmUrl = `${process.env.FRONT_URL}/auth/confirm-email?token=${emailToken}`;
+    let frontPath: string;
+
+    if (role === "ADMIN") {
+        frontPath = "/admin/users/confirm-email";
+    } else {
+        frontPath = "/confirm-email";
+    }
+
+    const confirmUrl = `${process.env.FRONT_URL}${frontPath}?token=${emailToken}`;
 
     await sendConfirmationEmail(user.email, confirmUrl);
 
@@ -96,6 +104,8 @@ export const confirmEmailService = async (token: string) => {
         }
     });
 
+
+
     if (!hasAcceptedLegal) {
         const legalToken = jwt.sign(
             { idUser: user.idUser, type: "LEGAL_ACCEPT" },
@@ -103,6 +113,7 @@ export const confirmEmailService = async (token: string) => {
             { expiresIn: "15m" }
         );
 
+        console.log("LegalToken envoyé :", legalToken);
         return {
             status: "NEEDS_LEGAL",
             legalToken

@@ -41,7 +41,8 @@ export const getProfileService = async (idUser: string) => {
 export type UpdateUser = {
     username?: string;
     email?: string;
-    profilPictureUrl?: string | null;
+    removePicture?: boolean;
+    // profilPictureUrl?: string | null;
     role?: UserRoleEnum,
 }
 
@@ -60,7 +61,7 @@ export const updateUserService = async (idUser: string, data: UpdateUser, profil
         throw new Error("ACCOUNT_INACTIVE");
     }
 
-    const updatedData: Partial<UpdateUser> & { isActive?: boolean } = {};
+    const updatedData: Partial<UpdateUser> & { isActive?: boolean } & { profilPictureUrl?: string | null | undefined } = {};
     let emailChanged = false;
 
     // Vérifier la contrainte d'unicité de lu nom d'utilisateur
@@ -103,8 +104,16 @@ export const updateUserService = async (idUser: string, data: UpdateUser, profil
     const oldProfilPictureUrl = user.profilPictureUrl;
 
     // Mise à jour de l'image de profil : 
-    if (profilPictureUrl !== undefined) {
+    // if (profilPictureUrl !== undefined) {
+    //     updatedData.profilPictureUrl = profilPictureUrl;
+    // } 
+
+    if(profilPictureUrl) {
         updatedData.profilPictureUrl = profilPictureUrl;
+    }
+
+    if(data.removePicture) {
+        updatedData.profilPictureUrl = null;
     }
 
     if (Object.keys(updatedData).length === 0) {
@@ -132,7 +141,15 @@ export const updateUserService = async (idUser: string, data: UpdateUser, profil
             { expiresIn: "1d" }
         );
 
-        const confirmUrl = `${process.env.FRONT_URL}/auth/confirm-email?token=${emailToken}`;
+        let frontPath = "/confirm-email";
+
+        if (updatedUser.role === "ADMIN") {
+            frontPath = "/admin/users/confirm-email";
+        } else {
+            frontPath = "/confirm-email";
+        }
+
+        const confirmUrl = `${process.env.FRONT_URL}${frontPath}?token=${emailToken}`;
 
         await sendConfirmationEmail(updatedUser.email, confirmUrl);
     }

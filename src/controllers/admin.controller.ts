@@ -89,7 +89,7 @@ export const adminCreateUserController = async (
     }
 }
 
-export const updateUserController = async ( // Changement ici
+export const updateUserController = async (
     req: Request<AdminUpdateUserParamsInput, any, UpdateUser> & { user?: { idUser: string; role: UserRoleEnum } },
     res: Response,
     next: NextFunction
@@ -112,7 +112,7 @@ export const updateUserController = async ( // Changement ici
             profilPictureUrl = `/uploads/${req.file.filename}`;
         }
         // Suppression explicite
-        else if (req.body.profilPictureUrl === "null") {
+        else if (req.body.removePicture === true) {
             profilPictureUrl = null
         }
 
