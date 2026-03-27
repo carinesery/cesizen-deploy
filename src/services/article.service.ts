@@ -12,6 +12,7 @@ export const getPublicArticles = async () => {
             summary: true,
             createdAt: true,
             updatedAt: true,
+            status: true,
             categories: {
                 select: {
                     title: true,
@@ -26,10 +27,18 @@ export const getPublicArticles = async () => {
     });
 };
 
-export const readArticle = async (slug: string) => {
+export const getArticleService = async (slug: string) => {
     const article = await prisma.article.findFirst({
         where: {
             slug: slug,
+        },
+        include: {
+            categories: {
+                select: {
+                    title: true,    
+                    slug: true,
+                }
+            }
         }
     });
 

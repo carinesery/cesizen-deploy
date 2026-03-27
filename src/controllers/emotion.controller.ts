@@ -14,7 +14,7 @@ export const getAllEmotionsController = async (
 
         const emotions = await getAllEmotionsService();
 
-        return res.status(200).json({ data: emotions })
+        return res.status(200).json(emotions)
 
     } catch (error) {
         if (error instanceof Error && error.message === "LIST_OF_EMOTIONS_DOES_NOT_EXIST") {
@@ -34,7 +34,7 @@ export const getEmotionController = async (
 
         const emotion = await getEmotionService(id);
 
-        return res.status(200).json({ data: emotion })
+        return res.status(200).json(emotion)
 
     } catch (error) {
         if (error instanceof Error) {
@@ -73,12 +73,9 @@ export const createEmotionController = async (
             iconUrl = `/uploads/${req.file.filename}`;
         }
 
-        const emotionStored = await createEmotionService(data, iconUrl);
+        const newEmotion = await createEmotionService(data, iconUrl);
 
-        return res.status(201).json({
-            data: emotionStored,
-            message: "Nouvelle émotion enregistrée avec succès"
-        })
+        return res.status(201).json(newEmotion)
 
     } catch (error) {
         if (newFilePath && fs.existsSync(newFilePath)) {

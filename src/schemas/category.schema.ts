@@ -25,11 +25,15 @@ export const updateCategoryBodySchema = z.object({
         .max(1000, "Le résumé ne doit pas dépasser 1000 caractères")
         .nullable()
         .optional(),
-   iconUrl: z
-        .string()
-        .max(255, "L'URL ne doit pas dépasser 255 caractères")
-        .nullable()
-        .optional(),
+    removeIcon: z.preprocess(
+        (val) => val === 'true' || val === true,
+        z.boolean().optional()
+    ),
+    //    iconUrl: z
+    //         .string()
+    //         .max(255, "L'URL ne doit pas dépasser 255 caractères")
+    //         .nullable()
+    //         .optional(),
 });
 
 export type UpdateCategoryBodyInput = z.infer<typeof updateCategoryBodySchema>;

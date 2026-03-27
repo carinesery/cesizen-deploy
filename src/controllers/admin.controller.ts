@@ -126,9 +126,6 @@ export const updateUserController = async (
             if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
         }
 
-        // ✅ Spread operator: étend user + ajoute emailChanged au même niveau
-        // Au lieu de { user: {...}, emailChanged: true }
-        // On a { id: ..., email: ..., emailChanged: true }
         return res.status(200).json({ ...user, emailChanged });
 
     } catch (error) {

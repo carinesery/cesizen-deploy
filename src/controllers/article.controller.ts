@@ -1,11 +1,11 @@
-import { getPublicArticles, readArticle, createArticle, updateArticle, deleteArticleService } from "../services/article.service.js";
+import { getPublicArticles, getArticleService, createArticle, updateArticle, deleteArticleService } from "../services/article.service.js";
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { CreateArticleBodyInput, UpdateArticleBodyInput } from "../schemas/article.schema.js";
 import fs from "fs";
 import path from "path";
 
-export const getArticles = async (
+export const getAllArticlesController = async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -18,7 +18,7 @@ export const getArticles = async (
     }
 }
 
-export const getArticle = async (
+export const getArticleController = async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -26,7 +26,7 @@ export const getArticle = async (
     const { slug } = req.params as { slug: string };
 
     try {
-        const article = await readArticle(slug);
+        const article = await getArticleService(slug);
         return res.status(200).json(article);
     } catch (error) {
         if (error instanceof Error &&
@@ -104,7 +104,7 @@ export const patchArticle = async (
             presentationImageUrl = `/uploads/${req.file.filename}`;
         }
         // Suppression explicite
-        else if (req.body.presentationImageUrl === "null") {
+        else if (req.body.removePresentationImage === true) {
             presentationImageUrl = null
         }
 
