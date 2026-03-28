@@ -187,11 +187,12 @@ export const loginUserService = async (data: LoginUserInput) => {
         },
     });
 
-    return { user, accessToken, refreshToken: refreshTokenValue };
-
-    // Faire un refresh token
-    // Access token est envoyé à chaque requête et stocké dans LocalStroage ou cookies 5-10 min
-    // Refresh dans les cookies 60 jours. Il doit être stocké en base, et il faut le re-hashé (argon 2) --> axios conseillé
+    return { user: {
+        id: user.idUser,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+    }, accessToken, refreshToken: refreshTokenValue };
 
 }
 
@@ -242,7 +243,14 @@ export const refreshTokenService = async (tokenFromClient: string) => {
         { expiresIn: "5m" }
     );
 
-    return { accessToken };
+    return {
+        accessToken,
+        user: { 
+            id: storedToken.user.idUser, 
+            username: storedToken.user.username, 
+            email: storedToken.user.email, 
+            role: storedToken.user.role }
+    };
 };
 
 export const logoutService = async (refreshTokenFromClient: string) => {

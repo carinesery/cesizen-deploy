@@ -125,15 +125,16 @@ export const updateEmotionController = async (
     try {
         const { id } = req.params;
 
-        const data = req.body;
+        const { removeIcon, ...data } = req.body;
 
         // Changement d'image 
         if (req.file) {
             newFilePath = path.join(process.cwd(), "uploads", req.file.filename);
             iconUrl = `/uploads/${req.file.filename}`;
         }
+
         // Suppression explicite
-        else if (req.body.iconUrl === "null") {
+        else if (removeIcon === true) {
             iconUrl = null
         }
 
@@ -147,10 +148,7 @@ export const updateEmotionController = async (
             if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
         }
 
-        return res.status(200).json({
-            data: emotionUpdated,
-            message: "Emotion mise à jour avec succès"
-        })
+        return res.status(200).json(emotionUpdated)
 
     } catch (error) {
         if (newFilePath && fs.existsSync(newFilePath)) {

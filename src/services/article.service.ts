@@ -91,7 +91,6 @@ export const createArticle = async (data: CreateArticleBodyInput, presentationIm
             summary: data.summary,
             presentationImageUrl,
             authorId,
-            updatedAt: null,
             status: data.status ?? "DRAFT",
             categories: categoriesCreate,
         },

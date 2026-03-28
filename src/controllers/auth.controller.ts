@@ -161,6 +161,7 @@ export const loginController = async (
         return res.status(200).json({
             accessToken,
             user: {
+                id: user.id,
                 username: user.username,
                 email: user.email,
                 role: user.role,
@@ -190,9 +191,9 @@ export const refreshTokenController = async (
             });
         }
 
-        const { accessToken } = await refreshTokenService(tokenFromClient);
+        const { accessToken, user } = await refreshTokenService(tokenFromClient);
 
-        return res.status(200).json({ accessToken });
+        return res.status(200).json({ accessToken, user });
 
     } catch (error) {
         res.clearCookie("refreshToken");
