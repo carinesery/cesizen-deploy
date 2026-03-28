@@ -56,11 +56,15 @@ export const updateArticleBodySchema = z.object({
         .max(10000, "Le contenu ne doit pas dépasser 10000 caractères")
         .nullable()
         .optional(),
-    presentationImageUrl: z
-        .string()
-        .max(255, "L'URL ne doit pas dépasser 255 caractères")
-        .nullable()
-        .optional(),
+    removePresentationImage: z.preprocess(
+        (val) => val === 'true' || val === true,
+        z.boolean().optional()
+    ),
+    // presentationImageUrl: z
+    //     .string()
+    //     .max(255, "L'URL ne doit pas dépasser 255 caractères")
+    //     .nullable()
+    //     .optional(),
     status: articleStatusEnum.optional(),
     categories: z.preprocess((val) => {
         // undefined ou null = ne rien changer aux catégories
@@ -72,7 +76,7 @@ export const updateArticleBodySchema = z.object({
         // string JSON: "[\"cat1\", \"cat2\"]"
         if (typeof val === "string") {
             if (val === "") return undefined; // string vide = ne rien changer
-            
+
             try {
                 const parsed = JSON.parse(val);
                 return Array.isArray(parsed) ? parsed : [parsed];

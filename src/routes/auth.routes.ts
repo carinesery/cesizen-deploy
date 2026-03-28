@@ -11,7 +11,7 @@ const router = Router();
 router.post("/register", authLimiter, upload.single("profilPictureUrl"), validate(registerUserSchema, "body"), registerController);
 router.get("/confirm-email", validate(confirmEmailSchema, "query"), confirmationEmailController);
 router.post("/accept-legal", validate(acceptLegalSchema, "body"), acceptLegalController); 
-router.post("/login", authLimiter, validate(loginUserSchema, "body"), loginController);
+router.post("/login", authLimiter, validate(loginUserSchema, "body"), loginController); 
 router.post("/refresh-token", refreshTokenController);
 router.post("/logout", authMiddleware, logoutController);
 router.post("/forgot-password", authLimiter, validate(forgotPasswordBodySchema, "body"), forgotPasswordController);

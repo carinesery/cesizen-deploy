@@ -41,11 +41,14 @@ export const adminUpdateUserBodySchema = z.object({
         .min(3, "Le nom d'utilisateur doit faire au moins 3 caractères")
         .max(50, "Le nom d'utilisateur ne doit pas dépasser 50 caractères")
         .optional(),
-    profilPictureUrl: z
-        .string()
-        .max(500, "L'url ne doit pas dépasser 500 caractères")
-        .nullable()
-        .optional(),
+    removePicture: z.preprocess(
+        (val) => val === 'true' || val === true,
+        z.boolean().optional()
+    ), // Champ pour indiquer la suppression de la photo de profil
+    // .string()
+    // .max(500, "L'url ne doit pas dépasser 500 caractères")
+    // .nullable()
+    // .optional(),
     email: z
         .email()
         .max(255, "L'email ne doit pas dépasser 255 caractères")

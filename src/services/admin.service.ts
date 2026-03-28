@@ -98,6 +98,23 @@ export const setUserActiveStatusService = async (
         })
     }
 
+    // Retourner l'user mis à jour
+    const updatedUser = await prisma.user.findUnique({
+        where: { idUser },
+        select: {
+            idUser: true,
+            username: true,
+            email: true,
+            profilPictureUrl: true,
+            role: true,
+            isActive: true,
+            disabledAt: true,
+            createdAt: true,
+            updatedAt: true,
+        }
+    });
+
+    return updatedUser;
 };
 
 export const deleteUserService = async (idUser: string, idAdmin: string) => {
@@ -121,7 +138,8 @@ export const deleteUserService = async (idUser: string, idAdmin: string) => {
     const anonymizedUsername = `deleted_user_${idUser}`;
     const anonymizedEmail = `deleted_${idUser}@deleted.local`;
 
-    await prisma.$transaction([
+    // ✅ Transaction avec array: retourne [result1, result2, ...]
+    const [deletedUser] = await prisma.$transaction([
         prisma.user.update({
             where: { idUser },
             data: {
@@ -135,11 +153,17 @@ export const deleteUserService = async (idUser: string, idAdmin: string) => {
                 disabledAt: new Date(),
                 termsConsentAt: null,
                 privacyConsentAt: null
+            },
+            select: {
+                idUser: true,
+                deletedAt: true
             }
         }),
         prisma.refreshToken.updateMany({
-            where: {userId: idUser, revoked: false },
-            data: {revoked: true }
+            where: { userId: idUser, revoked: false },
+            data: { revoked: true }
         })
-    ])
+    ]);
+
+    return deletedUser;
 }

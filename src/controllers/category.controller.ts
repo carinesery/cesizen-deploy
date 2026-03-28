@@ -102,10 +102,10 @@ export const updateCategoryController = async (
             iconUrl = `/uploads/${req.file.filename}`;
         }
         // Suppression explicite
-        else if (req.body.iconUrl === "null") {
+        else if (req.body.removeIcon === true) {
             iconUrl = null
         }
-
+        
         const { updatedCategory, oldIconUrl } = await updateCategoryService(slug, data, iconUrl);
 
         if (

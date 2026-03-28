@@ -58,11 +58,20 @@ export const createUserService = async (data: CreateUser, profilPictureUrl: stri
         { expiresIn: "1d" }
     );
 
-    const confirmUrl = `${process.env.FRONT_URL}/auth/confirm-email?token=${emailToken}`;
+    let frontPath: string;
+
+    if (role === "ADMIN") {
+        frontPath = "/admin/users/confirm-email";
+    } else {
+        frontPath = "/confirm-email";
+    }
+
+    const confirmUrl = `${process.env.FRONT_URL}${frontPath}?token=${emailToken}`;
 
     await sendConfirmationEmail(user.email, confirmUrl);
 
-    return { user };
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword };
 };
 
 export const confirmEmailService = async (token: string) => {
@@ -95,6 +104,8 @@ export const confirmEmailService = async (token: string) => {
         }
     });
 
+
+
     if (!hasAcceptedLegal) {
         const legalToken = jwt.sign(
             { idUser: user.idUser, type: "LEGAL_ACCEPT" },
@@ -102,6 +113,7 @@ export const confirmEmailService = async (token: string) => {
             { expiresIn: "15m" }
         );
 
+        console.log("LegalToken envoyé :", legalToken);
         return {
             status: "NEEDS_LEGAL",
             legalToken
@@ -153,7 +165,7 @@ export const loginUserService = async (data: LoginUserInput) => {
     const accessToken = jwt.sign(
         { idUser: user.idUser, role: user.role },
         process.env.JWT_SECRET!,
-        { expiresIn: "1h" }
+        { expiresIn: "5m" }
     );
 
     const jti = crypto.randomUUID();
@@ -175,11 +187,12 @@ export const loginUserService = async (data: LoginUserInput) => {
         },
     });
 
-    return { user, accessToken, refreshToken: refreshTokenValue };
-
-    // Faire un refresh token
-    // Access token est envoyé à chaque requête et stocké dans LocalStroage ou cookies 5-10 min
-    // Refresh dans les cookies 60 jours. Il doit être stocké en base, et il faut le re-hashé (argon 2) --> axios conseillé
+    return { user: {
+        id: user.idUser,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+    }, accessToken, refreshToken: refreshTokenValue };
 
 }
 
@@ -230,7 +243,14 @@ export const refreshTokenService = async (tokenFromClient: string) => {
         { expiresIn: "5m" }
     );
 
-    return { accessToken };
+    return {
+        accessToken,
+        user: { 
+            id: storedToken.user.idUser, 
+            username: storedToken.user.username, 
+            email: storedToken.user.email, 
+            role: storedToken.user.role }
+    };
 };
 
 export const logoutService = async (refreshTokenFromClient: string) => {
