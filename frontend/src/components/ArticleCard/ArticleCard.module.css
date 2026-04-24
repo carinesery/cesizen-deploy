@@ -1,0 +1,36 @@
+body {
+    border: 0.125rem solid grey;
+}
+
+.topCard {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+
+}
+
+.category {
+    display: block;
+    padding: var(--spacing-4) var(--spacing-8);
+    background-color: var(--secondary-color);
+    border-radius: var(--spacing-16);
+}
+
+.time {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-4);
+}
+
+.timeIcon {
+    display: block;
+    width: var(--spacing-16);
+    aspect-ratio: 1/1;
+    background-image: url("../../assets/images/clock.webp");
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
+

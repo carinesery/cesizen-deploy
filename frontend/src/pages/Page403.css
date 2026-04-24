@@ -1,0 +1,65 @@
+/* 403Page.css */
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.page-403 {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #a0d6b4;
+  /* vert d'eau */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.zen-block {
+  display: flex;
+  align-items: center;
+  /* padding: 2rem 3rem; */
+  max-width: 700px;
+}
+
+.zen-image {
+  width: 150px;
+  height: auto;
+  margin-right: 2rem;
+}
+
+.be-zen {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+
+  /* margin-top: 2rem; */
+}
+
+.zen-text h1,
+.zen-text h2 {
+  text-align: center;
+}
+
+.zen-text h1 {
+  margin: 0;
+  font-size: 6rem;
+  color: #2d6a4f;
+  /* vert foncé */
+}
+
+.zen-text h2 {
+  margin: 0 0 2rem 0;
+  font-size: 1.5rem;
+  color: #40916c;
+  /* vert moyen */
+}
+
+.zen-text p {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1b4332;
+  /* vert encore plus foncé */
+}
