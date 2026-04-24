@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Article {
+  idArticle            String        @id @default(cuid()) // String
+  title                String        @db.VarChar(200)
+  slug                 String        @unique @db.VarChar(255)
+  summary              String?       @db.Text
+  content              String?       @db.Text
+  presentationImageUrl String?       @db.VarChar(500)
+  authorId             String // String
+  createdAt            DateTime      @default(now())
+  updatedById          String? // String
+  updatedAt            DateTime?
+  status               ArticleStatus @default(DRAFT)
+
+  //Relations
+  author     User       @relation("articleCreatedBy", fields: [authorId], references: [idUser])
+  updatedBy  User?      @relation("articleUpdatedBy", fields: [updatedById], references: [idUser])
+  medias     Media[]    @relation("articleMedias")
+  categories Category[]
+}
+
+enum MediaType {
+  IMAGE
+  AUDIO
+  VIDEO
+  PDF
+}
+
+model Media {
+  idMedia   String    @id @default(cuid())
+  title     String    @db.VarChar(200)
+  type      MediaType
+  mediaUrl  String    @unique @db.VarChar(500)
+  altText   String?   @db.VarChar(255)
+  caption   String?   @db.VarChar(255)
+  articleId String? // String 
+
+  // Relations 
+  article Article? @relation("articleMedias", fields: [articleId], references: [idArticle])
+}
+
+model Category {
+  idCategory  String  @id @default(cuid()) // String
+  title       String  @unique @db.VarChar(50)
+  slug        String  @unique @db.VarChar(60)
+  description String? @db.Text
+  iconUrl    String? @db.VarChar(255)
+
+  //Relation
+  articles Article[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  idUser              String    @id @default(cuid()) // String
+  username            String    @unique @db.VarChar(50)
+  profilPictureUrl    String?   @db.VarChar(500)
+  email               String    @unique @db.VarChar(255)
+  confirmationEmailAt DateTime?
+  passwordHash        String    @db.VarChar(255)
+  role                UserRole  @default(USER)
+  termsConsentAt      DateTime?
+  privacyConsentAt    DateTime?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime?
+  disabledAt          DateTime?
+  deletedAt           DateTime?
+
+
+  // Relations 
+  articlesCreated Article[]      @relation("articleCreatedBy")
+  articlesUpdated Article[]      @relation("articleUpdatedBy")
+  moodEntries     MoodEntry[]    @relation("userMoodEntries")
+  refreshTokens   RefreshToken[] @relation("userRefreshTokens")
+}
+
+model RefreshToken {
+  idRefreshToken String   @id @default(cuid()) // String
+  jti            String   @unique
+  userId         String  //String
+  refreshToken   String   @unique
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+  revoked        Boolean  @default(false)
+
+  // Relation
+  user User @relation("userRefreshTokens", fields: [userId], references: [idUser])
+
+  @@index([userId])
+}
+
+enum EmotionLevel {
+  LEVEL_1
+  LEVEL_2
+}
+
+model Emotion {
+  idEmotion       String       @id @default(cuid())
+  title           String       @unique @db.VarChar(50)
+  description     String?      @db.Text
+  iconUrl         String?      @db.VarChar(255)
+  level           EmotionLevel
+  parentEmotionId String?
+  deletedAt       DateTime?
+
+  // Relations
+  parentEmotion Emotion?    @relation("emotionHierarchy", fields: [parentEmotionId], references: [idEmotion])
+  childEmotions Emotion[]   @relation("emotionHierarchy")
+  emotionEntry  MoodEntry[] @relation("emotionEntry")
+  feelingEntry  MoodEntry[] @relation("feelingEntry")
+}
+
+model MoodEntry {
+  idMoodEntry            String    @id @default(cuid())
+  emotionDate            DateTime  
+  parentEmotionIntensity Int       
+  comment                String?   @db.Text
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime?
+  userId                 String // String
+  emotionId              String
+  feelingId              String?
+
+  // Relations
+  user    User     @relation("userMoodEntries", fields: [userId], references: [idUser])
+  emotion Emotion  @relation("emotionEntry", fields: [emotionId], references: [idEmotion])
+  feeling Emotion? @relation("feelingEntry", fields: [feelingId], references: [idEmotion])
+
+  @@unique([userId, emotionDate])
+  @@index([userId])
+}
