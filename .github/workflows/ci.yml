@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies # installe les dépendances du projet
         working-directory: ./api # se place dans le dossier api pour exécuter la commande suivante
         run: npm ci
+      - name: Generate Prisma client
+        working-directory: ./api
+        run: npx prisma generate
       - name: Audit
         working-directory: ./api
         run: npm audit --audit-level=high
