@@ -1,0 +1,56 @@
+services:
+  api:
+    build: 
+      context: ./api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EMAIL_SECRET=${JWT_EMAIL_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - FRONT_URL=${FRONT_URL}
+      - MOBILE_URL=${MOBILE_URL}
+      - MAILTRAP_HOST=${MAILTRAP_HOST}
+      - MAILTRAP_PORT=${MAILTRAP_PORT}
+      - MAILTRAP_USER=${MAILTRAP_USER}
+      - MAILTRAP_PASS=${MAILTRAP_PASS}
+
+    volumes:
+      - ./api:/app
+      - /app/node_modules # pour éviter les conflits de node_modules entre host et container
+
+    container_name: cesizen_api
+    
+
+  db:
+    image: postgres:16-bookworm
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER} #postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} #postgres
+      - POSTGRES_DB=${POSTGRES_DB} #cesizen
+    ports: 
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data # remplacer en pour la prod db/data:/var/lib/postgresql/data
+    container_name: postgres_db
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # pour éviter les conflits de node_modules entre host et container
+    container_name: cesizen_frontend
+
+volumes:
+  pgdata:

@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod          # ← ton Dockerfile actuel, il est bien
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EMAIL_SECRET=${JWT_EMAIL_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - FRONT_URL=${FRONT_URL}
+      - MOBILE_URL=${MOBILE_URL}
+      - MAILTRAP_HOST=${MAILTRAP_HOST}
+      - MAILTRAP_PORT=${MAILTRAP_PORT}
+      - MAILTRAP_USER=${MAILTRAP_USER}
+      - MAILTRAP_PASS=${MAILTRAP_PASS}
+    container_name: cesizen_api
+    restart: always                   # ← important en prod
+
+  db:
+    image: postgres:16-bookworm
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./db/data:/var/lib/postgresql/data  # ← volume local en prod, pas named volume
+    container_name: postgres_db
+    restart: always
+
+volumes:
+  pgdata:
