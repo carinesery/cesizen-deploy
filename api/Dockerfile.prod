@@ -1,4 +1,4 @@
-FROM node:24-alpine3.22 as builder
+FROM node:24-alpine3.22 AS builder
 
 WORKDIR /app
 
@@ -8,10 +8,12 @@ RUN npm install
 
 COPY . .
 
+RUN npx prisma generate --config src/prisma.config.ts
+
 RUN npm run build
 
 
-FROM node:24-alpine3.22 as runner
+FROM node:24-alpine3.22 AS runner
 
 WORKDIR /app
 
