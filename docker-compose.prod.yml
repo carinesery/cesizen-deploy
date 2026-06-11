@@ -23,7 +23,7 @@ services:
   frontend:
     image: ghcr.io/carinesery/cesizen-deploy/frontend:main
     ports:
-      - "5174:5173"
+      - "5174:80"
     depends_on:
       - api
     container_name: cesizen_frontend_prod
