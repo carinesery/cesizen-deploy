@@ -1,8 +1,8 @@
 services:
   api:
-    image: ghcr.io/carinesery/cesizen-deploy/api:main # utiliser l'image construite et poussée par le workflow de CD
+    image: ghcr.io/carinesery/cesizen-deploy/api:develop # utiliser l'image construite et poussée par le workflow de CD
     ports:
-      - "3001:3000"
+      - "3000:3000"
     depends_on:
       - db
     environment:
@@ -17,16 +17,16 @@ services:
       - MAILTRAP_PORT=${MAILTRAP_PORT}
       - MAILTRAP_USER=${MAILTRAP_USER}
       - MAILTRAP_PASS=${MAILTRAP_PASS}
-    container_name: cesizen_api_prod
+    container_name: cesizen_api_staging
     restart: always                   # ← important en prod
 
   frontend:
-    image: ghcr.io/carinesery/cesizen-deploy/frontend:main
+    image: ghcr.io/carinesery/cesizen-deploy/frontend:develop
     ports:
-      - "5174:5173"
+      - "5173:5173"
     depends_on:
       - api
-    container_name: cesizen_frontend_prod
+    container_name: cesizen_frontend_staging
     restart: always
 
   db:
@@ -36,6 +36,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - ./db/data/prod:/var/lib/postgresql/data  # ← volume local en prod, pas named volume
-    container_name: postgres_db_prod
+      - ./db/data/staging:/var/lib/postgresql/data  # ← volume local en prod, pas named volume
+    container_name: postgres_db_staging
     restart: always
