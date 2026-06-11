@@ -76,7 +76,7 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     environment:
       name: staging
-      url: http://${{ secrets.VM_HOST }}:5173
+      url: http://20.233.249.136:5173
     steps:
       - uses: actions/checkout@v4
 
@@ -118,7 +118,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     environment:
       name: production
-      url: http://${{ secrets.VM_HOST }}:5174
+      url: http://20.233.249.136:5174
     steps:
       - uses: actions/checkout@v4
 
