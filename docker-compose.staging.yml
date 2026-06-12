@@ -6,7 +6,7 @@ services:
     depends_on:
       - db
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=staging
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EMAIL_SECRET=${JWT_EMAIL_SECRET}
