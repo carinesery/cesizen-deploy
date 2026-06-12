@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/carinesery/cesizen-deploy/api:main # utiliser l'image construite et poussée par le workflow de CD
+    image: ${API_IMAGE} # utiliser l'image construite et poussée par le workflow de CD
     ports:
       - "3001:3000"
     depends_on:
@@ -21,7 +21,7 @@ services:
     restart: always                   # ← important en prod
 
   frontend:
-    image: ghcr.io/carinesery/cesizen-deploy/frontend:main
+    image: ${FRONTEND_IMAGE} # utiliser l'image construite et poussée par le workflow de CD
     ports:
       - "5174:80"
     depends_on:
