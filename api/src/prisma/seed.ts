@@ -1,4 +1,5 @@
-import { prisma } from "../../src/prismaClient.js";
+// import { prisma } from "../../src/prismaClient.js";
+import { prisma } from "../prismaClient.js";
 import bcrypt from "bcrypt";
 
 async function main() {

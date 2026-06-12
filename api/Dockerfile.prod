@@ -1,0 +1,30 @@
+FROM node:24-alpine3.22 AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+RUN npx prisma generate --config src/prisma.config.ts
+
+RUN npm run build
+
+# Copier le schéma prisma dans build/
+RUN cp -r src/prisma/migrations build/prisma/migrations
+RUN cp src/prisma/schema.prisma build/prisma/schema.prisma
+
+
+FROM node:24-alpine3.22 AS runner
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install --omit=dev
+
+COPY --from=builder /app/build ./build
+
+CMD ["node", "build/index.js"]

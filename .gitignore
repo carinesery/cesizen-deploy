@@ -1,0 +1,10 @@
+.env
+.env.*
+node_modules
+dist
+build
+data/
+api/node_modules
+frontend/node_modules
+api/build
+api/src/generated
