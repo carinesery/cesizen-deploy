@@ -156,12 +156,12 @@ jobs:
         run: |
           scp docker-compose.prod.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cesizen/prod/
 
-      - name: Run database migration
-        run: |
-          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            cd ~/cesizen/prod
-            sudo docker exec -e DATABASE_URL="${{ secrets.DATABASE_URL }}" cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js 2>&1
-          EOF
+      # - name: Run database migration
+      #   run: |
+      #     ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+      #       cd ~/cesizen/prod
+      #       sudo docker exec -e DATABASE_URL="${{ secrets.DATABASE_URL }}" cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js 2>&1
+      #     EOF
               
       - name: Deploy on prod VM
         run: |
@@ -182,6 +182,13 @@ jobs:
             echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
             echo 'API_IMAGE=ghcr.io/carinesery/cesizen-deploy/api:${{ github.ref_name }}' >> .env
             echo 'FRONTEND_IMAGE=ghcr.io/carinesery/cesizen-deploy/frontend:${{ github.ref_name }}' >> .env
+
             sudo docker compose -f docker-compose.prod.yml up -d --pull always
+
+            echo "Waiting for API to start..."
+            sleep 10
+
+            sudo docker exec cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js
+
             sudo docker image prune -f
           EOF
