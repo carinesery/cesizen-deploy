@@ -24,7 +24,7 @@ app.use(helmet({
 
 // 🌐 CORS - autorise le frontend React
 app.use(cors({
-    origin: process.env.FRONT_URL || "http://localhost:5173",
+    origin: process.env.FRONT_URL || "http://localhost:5173" || "https://cesizencs.uaenorth.cloudapp.azure.com",
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
     allowedHeaders: ["Content-Type", "Authorization"]
