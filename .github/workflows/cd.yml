@@ -98,6 +98,13 @@ jobs:
         run: |
           scp docker-compose.staging.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cesizen/staging/
 
+      - name: Run database migration
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            cd ~/cesizen/staging
+            sudo docker exec cesizen_api_staging npx prisma migrate deploy --config build/prisma.config.js 2>&1
+          EOF
+
       - name: Deploy on staging VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
@@ -115,8 +122,8 @@ jobs:
             echo 'MAILTRAP_PORT=${{ vars.MAILTRAP_PORT }}' >> .env
             echo 'MAILTRAP_USER=${{ secrets.MAILTRAP_USER }}' >> .env
             echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
-            docker compose -f docker-compose.staging.yml up -d --pull always
-            docker image prune -f
+            sudo docker compose -f docker-compose.staging.yml up -d --pull always
+            sudo docker image prune -f
           EOF
 
   deploy-prod:
@@ -144,9 +151,7 @@ jobs:
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/cesizen/prod
-            echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' > .env.migration
-            # Lance migration dans le container API existant
-            docker exec -e DATABASE_URL="${{ secrets.DATABASE_URL }}" cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js 2>&1 || true
+            sudo docker exec -e DATABASE_URL="${{ secrets.DATABASE_URL }}" cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js 2>&1
           EOF
               
       - name: Deploy on prod VM
@@ -168,6 +173,6 @@ jobs:
             echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
             echo 'API_IMAGE=ghcr.io/carinesery/cesizen-deploy/api:${{ github.ref_name }}' >> .env
             echo 'FRONTEND_IMAGE=ghcr.io/carinesery/cesizen-deploy/frontend:${{ github.ref_name }}' >> .env
-            docker compose -f docker-compose.prod.yml up -d --pull always
-            docker image prune -f
+            sudo docker compose -f docker-compose.prod.yml up -d --pull always
+            sudo docker image prune -f
           EOF
