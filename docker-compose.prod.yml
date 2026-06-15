@@ -19,6 +19,13 @@ services:
       - MAILTRAP_PASS=${MAILTRAP_PASS}
     container_name: cesizen_api_prod
     restart: always                   # ← important en prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - cesizen-network
 
   frontend:
     image: ${FRONTEND_IMAGE} # utiliser l'image construite et poussée par le workflow de CD
@@ -28,6 +35,11 @@ services:
       - api
     container_name: cesizen_frontend_prod
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   db:
     image: postgres:16-bookworm
@@ -39,3 +51,9 @@ services:
       - ./db/data/prod:/var/lib/postgresql/data  # ← volume local en prod, pas named volume
     container_name: postgres_db_prod
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
