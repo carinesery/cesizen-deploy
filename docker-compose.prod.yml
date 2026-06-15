@@ -1,17 +1,23 @@
 services:
 
   traefik:
-    image: traefik:v2.10
+    image: traefik:v3.6
     container_name: traefik_prod
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+
+      # redirect HTTP → HTTPS (IMPORTANT)
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
       - "--certificatesresolvers.le.acme.httpchallenge=true"
       - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.le.acme.email=admin@example.com"
+      - "--certificatesresolvers.le.acme.email=carine.sery@gmail.com"
       - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
 
     ports:
