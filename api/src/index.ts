@@ -16,6 +16,8 @@ import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 
 const app = express();
 
+app.set('trust proxy', 1); // Pour que Express accepte les proxy
+
 // 🛡️ Sécurité
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
