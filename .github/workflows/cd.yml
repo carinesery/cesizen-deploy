@@ -140,6 +140,15 @@ jobs:
         run: |
           scp docker-compose.prod.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cesizen/prod/
 
+      - name: Run database migration
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            cd ~/cesizen/prod
+            echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' > .env.migration
+            # Lance migration dans le container API existant
+            docker exec -e DATABASE_URL="${{ secrets.DATABASE_URL }}" cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js 2>&1 || true
+          EOF
+              
       - name: Deploy on prod VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
