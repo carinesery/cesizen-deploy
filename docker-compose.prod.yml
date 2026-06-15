@@ -1,8 +1,35 @@
 services:
+
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik_prod
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email=admin@example.com"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+
+    networks:
+      - cesizen-network
+
   api:
     image: ${API_IMAGE} # utiliser l'image construite et poussée par le workflow de CD
-    ports:
-      - "3001:3000"
+    container_name: cesizen_api_prod
+    expose:
+      - "3000"
     depends_on:
       - db
     environment:
@@ -17,17 +44,42 @@ services:
       - MAILTRAP_PORT=${MAILTRAP_PORT}
       - MAILTRAP_USER=${MAILTRAP_USER}
       - MAILTRAP_PASS=${MAILTRAP_PASS}
-    container_name: cesizen_api_prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`cesizencs.uaenorth.cloudapp.azure.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=le"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
     restart: always                   # ← important en prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - cesizen-network
 
   frontend:
     image: ${FRONTEND_IMAGE} # utiliser l'image construite et poussée par le workflow de CD
-    ports:
-      - "5174:80"
+    container_name: cesizen_frontend_prod
+    expose:
+      - "80"
     depends_on:
       - api
-    container_name: cesizen_frontend_prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`cesizencs.uaenorth.cloudapp.azure.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=le"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - cesizen-network
 
   db:
     image: postgres:16-bookworm
@@ -39,3 +91,15 @@ services:
       - ./db/data/prod:/var/lib/postgresql/data  # ← volume local en prod, pas named volume
     container_name: postgres_db_prod
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - cesizen-network
+
+networks:
+  cesizen-network:
+    driver: bridge
+    

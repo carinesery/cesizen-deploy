@@ -65,6 +65,15 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/frontend
 
+      - name: Set API URL
+        id: set_api
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "VITE_API_URL=https://cesizencs.uaenorth.cloudapp.azure.com/api" >> $GITHUB_OUTPUT
+          else
+            echo "VITE_API_URL=http://${{ secrets.VM_HOST }}:3000/api" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Frontend image
         uses: docker/build-push-action@v6
         with:
@@ -74,7 +83,7 @@ jobs:
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
           build-args: |
-            VITE_API_URL=http://${{ secrets.VM_HOST }}:3000/api
+            VITE_API_URL=${{ steps.set_api.outputs.VITE_API_URL }}
 
 
   deploy-staging:
@@ -98,6 +107,13 @@ jobs:
         run: |
           scp docker-compose.staging.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cesizen/staging/
 
+      - name: Run database migration
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            cd ~/cesizen/staging
+            sudo docker exec cesizen_api_staging npx prisma migrate deploy --config build/prisma.config.js 2>&1
+          EOF
+
       - name: Deploy on staging VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
@@ -115,8 +131,8 @@ jobs:
             echo 'MAILTRAP_PORT=${{ vars.MAILTRAP_PORT }}' >> .env
             echo 'MAILTRAP_USER=${{ secrets.MAILTRAP_USER }}' >> .env
             echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
-            docker compose -f docker-compose.staging.yml up -d --pull always
-            docker image prune -f
+            sudo docker compose -f docker-compose.staging.yml up -d --pull always
+            sudo docker image prune -f
           EOF
 
   deploy-prod:
@@ -140,6 +156,13 @@ jobs:
         run: |
           scp docker-compose.prod.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cesizen/prod/
 
+      - name: Run database migration
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            cd ~/cesizen/prod
+            sudo docker exec -e DATABASE_URL="${{ secrets.DATABASE_URL }}" cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js 2>&1
+          EOF
+              
       - name: Deploy on prod VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
@@ -159,6 +182,6 @@ jobs:
             echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
             echo 'API_IMAGE=ghcr.io/carinesery/cesizen-deploy/api:${{ github.ref_name }}' >> .env
             echo 'FRONTEND_IMAGE=ghcr.io/carinesery/cesizen-deploy/frontend:${{ github.ref_name }}' >> .env
-            docker compose -f docker-compose.prod.yml up -d --pull always
-            docker image prune -f
+            sudo docker compose -f docker-compose.prod.yml up -d --pull always
+            sudo docker image prune -f
           EOF
