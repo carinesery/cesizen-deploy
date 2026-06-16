@@ -32,6 +32,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
+      - ./logs:/var/log/traefik
 
     networks:
       - cesizen-network

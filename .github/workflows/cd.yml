@@ -100,13 +100,6 @@ jobs:
         run: |
           scp docker-compose.staging.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cesizen/staging/
 
-      - name: Run database migration
-        run: |
-          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            cd ~/cesizen/staging
-            sudo docker exec cesizen_api_staging npx prisma migrate deploy --config build/prisma.config.js 2>&1
-          EOF
-
       - name: Deploy on staging VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
