@@ -1,4 +1,5 @@
 import rateLimit from "express-rate-limit";
+import { logger } from "../utils/logger.js";
 
 // 🌐 Limiteur global : 100 requêtes par 15 minutes
 export const globalLimiter = rateLimit({
@@ -21,4 +22,17 @@ export const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true, // Ne compte que les erreurs (403, 401, etc)
+
+    /* Ajout pour logs de sécurité */
+    handler: (req, res) => {
+
+        logger.security(
+            "RATE_LIMIT_EXCEEDED",
+            `IP=${req.ip} Route=${req.originalUrl}`
+        );
+
+        res.status(429).json({
+            message: "Trop de tentatives de connexion, réessayez après 15 minutes",
+        });
+    }
 });
