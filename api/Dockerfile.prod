@@ -4,17 +4,13 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
 RUN npx prisma generate --config src/prisma.config.ts
 
 RUN npm run build
-
-# Copier le schéma prisma dans build/
-RUN cp -r src/prisma/migrations build/prisma/migrations
-RUN cp src/prisma/schema.prisma build/prisma/schema.prisma
 
 
 FROM node:24-alpine3.22 AS runner
@@ -23,8 +19,20 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/build ./build
 
+# Copie le client Prisma généré à l'étape précédente
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma 
+
+# Copie le schema et les migrations
+COPY --from=builder /app/src/prisma ./src/prisma 
+
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 3000
+
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "build/index.js"]
