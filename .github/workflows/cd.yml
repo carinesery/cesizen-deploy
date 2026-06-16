@@ -124,7 +124,14 @@ jobs:
             echo 'MAILTRAP_PORT=${{ vars.MAILTRAP_PORT }}' >> .env
             echo 'MAILTRAP_USER=${{ secrets.MAILTRAP_USER }}' >> .env
             echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
+           
             sudo docker compose -f docker-compose.staging.yml up -d --pull always
+          
+            echo "Waiting for API to start..."
+            sleep 10
+            
+            sudo docker exec cesizen_api_staging npx prisma migrate deploy --config build/prisma.config.js
+            
             sudo docker image prune -f
           EOF
 
