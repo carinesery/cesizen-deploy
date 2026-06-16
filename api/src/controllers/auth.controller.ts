@@ -5,6 +5,7 @@ import { forgotPasswordBodyInput, resetPasswordBodyInput, loginUserSchema, regis
 import { UserRoleEnum } from "../utils/enum.js";
 import fs from "fs";
 import path from "path";
+import { logger } from "../utils/logger.js";
 
 export const registerController = async (
     req: Request,
@@ -147,8 +148,12 @@ export const loginController = async (
     res: Response,
     next: NextFunction
 ) => {
+    let email: string | undefined;
+
     try {
         const data = loginUserSchema.parse(req.body);
+        email = data.email; // 👈 stocké pour logs si besoin
+
         const { user, accessToken, refreshToken } = await loginUserService(data);
 
         res.cookie("refreshToken", refreshToken, {
@@ -169,6 +174,12 @@ export const loginController = async (
         });
     } catch (error) {
         if (error instanceof Error && error.message === "INVALID_CREDENTIALS") {
+
+            logger.security(
+                "LOGIN_FAILED",
+                `Email=${email ?? "unknown"}IP=${req.ip}`
+            );
+            
             return res.status(401).json({
                 message: "Email ou mot de passe incorrect",
             });

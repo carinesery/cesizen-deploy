@@ -2,7 +2,8 @@ import { prisma } from "../prismaClient.js";
 import { Request, Response, NextFunction } from "express";
 import { verifyJwt } from "../utils/jwt.js";
 import { UserRoleEnum } from "../utils/enum.js";
-
+import { logger } from "../utils/logger.js";
+import jwt from "jsonwebtoken";
 
 /* export interface AuthRequest<
     P = {},
@@ -45,7 +46,7 @@ export const authMiddleware = async (
             process.env.JWT_SECRET!
         );
 
-         const user = await prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { idUser: payload.idUser },
             select: {
                 idUser: true,
@@ -55,7 +56,7 @@ export const authMiddleware = async (
             }
         });
 
-         if (!user || !user.isActive || user.deletedAt) {
+        if (!user || !user.isActive || user.deletedAt) {
             return res.status(403).json({
                 message: "Compte désactivé"
             });
@@ -68,6 +69,26 @@ export const authMiddleware = async (
 
         next();
     } catch (error) {
-        return res.status(401).json({ message: "Token invalide ou expiré" });
+        // return res.status(401).json({ message: "Token invalide ou expiré" });
+        if (error instanceof jwt.TokenExpiredError) {
+
+            logger.security(
+                "JWT_EXPIRED",
+                `IP=${req.ip} Route=${req.originalUrl}`
+            );
+
+            return res.status(401).json({
+                message: "Token expiré"
+            });
+        }
+
+        logger.security(
+            "JWT_INVALID",
+            `IP=${req.ip} Route=${req.originalUrl}`
+        );
+
+        return res.status(401).json({
+            message: "Token invalide"
+        });
     }
 };

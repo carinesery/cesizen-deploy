@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const logsDir = "./logs";
+const logsDir = "/app/logs";
 
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
