@@ -1,8 +1,8 @@
 export const mockLoginSuccess = () => {
-  cy.intercept('POST', '**/login', {
+  cy.intercept('POST', '/auth/login', {
     statusCode: 200,
     body: {
-      token: 'fake-jwt-token',
+      accessToken: 'fake-token',
       user: {
         id: 1,
         email: 'admin@test.com',
@@ -13,7 +13,7 @@ export const mockLoginSuccess = () => {
 }
 
 export const mockLoginFailure = () => {
-  cy.intercept('POST', '**/login', {
+  cy.intercept('POST', '/auth/login', {
     statusCode: 401,
     body: {
       message: 'Erreur de connexion'

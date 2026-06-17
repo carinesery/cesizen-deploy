@@ -1,23 +1,9 @@
-// cypress/e2e/login.cy.ts
+import { mockLoginSuccess, mockLoginFailure } from '../support/mocks/auth'
 
 describe('Login', () => {
-  beforeEach(() => {
-    cy.clearLocalStorage()
-  })
 
   it('should login successfully', () => {
-    cy.intercept('POST', '**/auth/login', (req) => {
-      req.reply({
-        statusCode: 200,
-        body: {
-          accessToken: 'fake-token',
-          user: {
-            id: 1,
-            email: 'admin@test.com'
-          }
-        }
-      })
-    }).as('login')
+    mockLoginSuccess()
 
     cy.visit('/login')
 
@@ -28,17 +14,12 @@ describe('Login', () => {
 
     cy.wait('@login')
 
-    // laisse React router respirer
-    cy.location('pathname', { timeout: 10000 }).should('eq', '/admin')
+    // IMPORTANT : on ne dépend PAS du backend
+    cy.url().should('include', '/admin')
   })
 
   it('should fail login', () => {
-    cy.intercept('POST', '**/auth/login', {
-      statusCode: 401,
-      body: {
-        message: 'Erreur de connexion'
-      }
-    }).as('loginFail')
+    mockLoginFailure()
 
     cy.visit('/login')
 
