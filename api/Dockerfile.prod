@@ -23,6 +23,8 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/build ./build
 
+COPY --from=builder /app/src/prisma.config.ts ./src/prisma.config.ts
+
 # Copie le client Prisma généré à l'étape précédente
 COPY --from=builder /app/src/generated/prisma ./src/generated/prisma 
 
