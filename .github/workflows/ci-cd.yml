@@ -77,6 +77,12 @@ jobs:
       - name: Install dependencies
         working-directory: ./frontend
         run: npm ci
+      - name: Start API
+        working-directory: ./api
+        run: |
+          npm ci
+          npm run start &
+          sleep 10
       - name: Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
@@ -88,6 +94,10 @@ jobs:
         env:
           CYPRESS_ADMIN_EMAIL: ${{ secrets.CYPRESS_ADMIN_EMAIL }}
           CYPRESS_ADMIN_PASSWORD: ${{ secrets.CYPRESS_ADMIN_PASSWORD }}
+        services:
+          api:
+            image: node:24
+            command: npm run start
       - name: Upload Cypress video
         uses: actions/upload-artifact@v7
         if: always()
