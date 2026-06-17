@@ -85,6 +85,9 @@ jobs:
           start: npm run preview
           wait-on: http://localhost:4173
           browser: ${{ matrix.browser }}
+        env:
+          CYPRESS_ADMIN_EMAIL: ${{ secrets.CYPRESS_ADMIN_EMAIL }}
+          CYPRESS_ADMIN_PASSWORD: ${{ secrets.CYPRESS_ADMIN_PASSWORD }}
       - name: Upload Cypress video
         uses: actions/upload-artifact@v7
         if: always()
