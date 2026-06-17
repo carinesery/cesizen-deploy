@@ -1,38 +1,215 @@
-name: CD
+name: CI/CD
 
 on:
   push:
     branches:
-      - develop
-      - main
-    tags:
+      - '**'
+    tags: 
       - 'v*'
 
 jobs:
+  audit-api:
+    runs-on: ubuntu-latest # crée une machine virtuelle Ubuntu pour exécuter le job
+    steps:
+      - uses: actions/checkout@v4 # met le code du repo dans VM
+      - uses: actions/setup-node@v4 # installe Node.js dans la VM, ici la version 24
+        with:
+          node-version: 24
+          cache: npm # Met en cache les dépendances npm pour accélérer les builds
+          cache-dependency-path: api/package-lock.json
+      - name: Install dependencies # installe les dépendances du projet
+        working-directory: ./api # se place dans le dossier api pour exécuter la commande suivante
+        run: npm ci
+      - name: Audit
+        working-directory: ./api
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  audit-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Install dependencies
+        working-directory: ./api
+        run: npm ci
+      - name: Generate Prisma client
+        working-directory: ./api
+        run: npx prisma generate --config src/prisma.config.ts
+      - name: Test
+        working-directory: ./api
+        run: npm run test -- --run # indique qu'il ne faut tourner qu'une fois
+              
+  test-frontend-e2e:
+    runs-on: ubuntu-latest
+    needs: [build-frontend]
+    strategy:
+      matrix:
+        browser: [chrome, edge]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          build: npm run build
+          start: npm run preview
+          wait-on: http://localhost:4173
+          browser: ${{ matrix.browser }}
+        env:
+          CYPRESS_ADMIN_EMAIL: ${{ secrets.CYPRESS_ADMIN_EMAIL }}
+          CYPRESS_ADMIN_PASSWORD: ${{ secrets.CYPRESS_ADMIN_PASSWORD }}
+      - name: Upload Cypress video
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cypress-videos-${{ matrix.browser }}
+          path: cypress/videos
+      - name: Upload Cypress screenshots 
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cypress-screenshots-${{ matrix.browser }}
+          path: cypress/screenshots
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # récupère tout l'historique du repo
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       # ← NOUVEAU: Upload report
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          retention-days: 30
+
+  lint-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Install dependencies
+        working-directory: ./api
+        run: npm ci
+      - name: Lint
+        working-directory: ./api
+        run: npm run lint
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Lint
+        working-directory: ./frontend
+        run: npm run lint
+  
+  build-api:
+    runs-on: ubuntu-latest
+    needs: [lint-api] # à exécuter après les jobs de lint et audit de l'api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Install dependencies
+        working-directory: ./api
+        run: npm ci
+      - name: Generate Prisma client
+        working-directory: ./api
+        run: npx prisma generate --config src/prisma.config.ts
+      - name: Build
+        working-directory: ./api
+        run: npm run build
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: [lint-frontend] # à exécuter après les jobs de lint et audit du frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+
+  
   build-and-push-api:
     runs-on: ubuntu-latest
+    needs: [audit-api, gitleaks, test-api, build-api] 
     if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read # lire le repo
       packages: write # écrire sur GHCR
-    
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Login GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata for API
         id: meta-api
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}/api
-
       - name: Build and push API image
         uses: docker/build-push-action@v6
         with:
@@ -41,32 +218,31 @@ jobs:
           push: true
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha # Met les layers de limage en cache pour accélérer les builds (gha=GitHub Actions Cache)
+          cache-to: type=gha,mode=max
 
   build-and-push-frontend:
     runs-on: ubuntu-latest
+    needs: [audit-frontend, gitleaks, test-frontend-e2e, build-frontend] 
     if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
       packages: write
     environment:
       name: ${{ github.ref == 'refs/heads/develop' && 'staging' || 'production' }}
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Login GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata for Frontend
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}/frontend
-
       - name: Build and push Frontend image
         uses: docker/build-push-action@v6
         with:
@@ -75,9 +251,10 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
-
 
   deploy-staging:
     runs-on: ubuntu-latest

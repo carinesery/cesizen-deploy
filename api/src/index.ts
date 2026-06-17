@@ -41,6 +41,11 @@ app.use(cookieParser());
 app.get("/", (req, res) =>  {
     res.send("Working")
 });
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use("/uploads", express.static("uploads"));
 app.use("/api/articles", articleRoutes);
 app.use("/api/auth", authRoutes);
