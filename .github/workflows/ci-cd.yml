@@ -218,8 +218,6 @@ jobs:
           push: true
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
-          cache-from: type=gha # Met les layers de limage en cache pour accélérer les builds (gha=GitHub Actions Cache)
-          cache-to: type=gha,mode=max
 
   build-and-push-frontend:
     runs-on: ubuntu-latest
@@ -251,8 +249,6 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
 
