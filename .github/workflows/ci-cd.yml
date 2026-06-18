@@ -61,46 +61,6 @@ jobs:
         working-directory: ./api
         run: npm run test -- --run # indique qu'il ne faut tourner qu'une fois
               
-  test-frontend-e2e:
-    runs-on: ubuntu-latest
-    needs: [build-frontend]
-    strategy:
-      matrix:
-        browser: [chrome, edge]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
-      - name: Cypress E2E tests
-        uses: cypress-io/github-action@v6
-        with:
-          working-directory: frontend
-          build: npm run build
-          start: npm run preview
-          wait-on: http://localhost:4173
-          browser: ${{ matrix.browser }}
-        env:
-          CYPRESS_ADMIN_EMAIL: ${{ secrets.CYPRESS_ADMIN_EMAIL }}
-          CYPRESS_ADMIN_PASSWORD: ${{ secrets.CYPRESS_ADMIN_PASSWORD }}
-      - name: Upload Cypress video
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: cypress-videos-${{ matrix.browser }}
-          path: cypress/videos
-      - name: Upload Cypress screenshots 
-        uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: cypress-screenshots-${{ matrix.browser }}
-          path: cypress/screenshots
-
   gitleaks:
     name: gitleaks
     runs-on: ubuntu-latest
@@ -223,7 +183,7 @@ jobs:
 
   build-and-push-frontend:
     runs-on: ubuntu-latest
-    needs: [audit-frontend, gitleaks, test-frontend-e2e, build-frontend] 
+    needs: [audit-frontend, gitleaks, build-frontend] 
     if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
@@ -282,25 +242,50 @@ jobs:
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/cesizen/staging
            
-            sudo docker compose -f docker-compose.staging.yml up -d --pull always
-          
-            timeout=60
-            elapsed=0
+            sudo docker compose -f docker-compose.staging.yml up -d --pull always --wait
 
-            until [ "$(docker inspect --format='{{.State.Health.Status}}' cesizen_api_staging)" = "healthy" ]; do
-              sleep 2
-              elapsed=$((elapsed+2))
-
-              if [ $elapsed -ge $timeout ]; then
-                echo "API not healthy after 60s"
-                exit 1
-              fi
-            done
-            
             sudo docker exec cesizen_api_staging npx prisma migrate deploy --config build/prisma.config.js
             
             sudo docker image prune -f
           EOF
+
+  test-frontend-e2e:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    strategy:
+      matrix:
+        browser: [chrome, edge]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      - name: Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          start: false
+          browser: ${{ matrix.browser }}
+        env:
+          CYPRESS_ADMIN_EMAIL: ${{ secrets.CYPRESS_ADMIN_EMAIL }}
+          CYPRESS_ADMIN_PASSWORD: ${{ secrets.CYPRESS_ADMIN_PASSWORD }}
+      - name: Upload Cypress video
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cypress-videos-${{ matrix.browser }}
+          path: cypress/videos
+      - name: Upload Cypress screenshots 
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cypress-screenshots-${{ matrix.browser }}
+          path: cypress/screenshots
+
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -327,26 +312,25 @@ jobs:
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/cesizen/prod
-            echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' > .env
-            echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env
-            echo 'JWT_EMAIL_SECRET=${{ secrets.JWT_EMAIL_SECRET }}' >> .env
-            echo 'JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}' >> .env
-            echo 'POSTGRES_USER=${{ vars.POSTGRES_USER }}' >> .env
-            echo 'POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}' >> .env
-            echo 'POSTGRES_DB=${{ vars.POSTGRES_DB }}' >> .env
-            echo 'FRONT_URL=${{ vars.FRONT_URL }}' >> .env
-            echo 'MOBILE_URL=${{ vars.MOBILE_URL }}' >> .env
-            echo 'MAILTRAP_HOST=${{ vars.MAILTRAP_HOST }}' >> .env
-            echo 'MAILTRAP_PORT=${{ vars.MAILTRAP_PORT }}' >> .env
-            echo 'MAILTRAP_USER=${{ secrets.MAILTRAP_USER }}' >> .env
-            echo 'MAILTRAP_PASS=${{ secrets.MAILTRAP_PASS }}' >> .env
-            echo 'API_IMAGE=ghcr.io/carinesery/cesizen-deploy/api:${{ github.ref_name }}' >> .env
-            echo 'FRONTEND_IMAGE=ghcr.io/carinesery/cesizen-deploy/frontend:${{ github.ref_name }}' >> .env
 
-            sudo docker compose -f docker-compose.prod.yml up -d --pull always
+            export API_IMAGE=ghcr.io/carinesery/cesizen-deploy/api:${{ github.ref_name }}
+            export FRONTEND_IMAGE=ghcr.io/carinesery/cesizen-deploy/frontend:${{ github.ref_name }}
+
+            sudo -E docker compose -f docker-compose.prod.yml up -d --pull always --wait
 
             echo "Waiting for API to start..."
-            sleep 10
+            timeout=60
+            elapsed=0
+
+            until [ "$(docker inspect --format='{{.State.Health.Status}}' cesizen_api_prod)" = "healthy" ]; do
+              sleep 2
+              elapsed=$((elapsed+2))
+
+              if [ $elapsed -ge $timeout ]; then
+                echo "API not healthy after 60s"
+                exit 1
+              fi
+            done
 
             sudo docker exec cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js
 
