@@ -16,7 +16,8 @@ describe('Login', () => {
     cy.url().should('not.include', '/login');
 
     cy.window().then((win) => {
-      expect(win.localStorage.getItem('token')).to.not.be.null;
+      const token = win.localStorage.getItem('token');
+      expect(token).to.exist;
     });
   });
 });
