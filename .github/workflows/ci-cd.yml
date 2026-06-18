@@ -249,7 +249,7 @@ jobs:
             sudo docker image prune -f
           EOF
 
-  test-e2e:
+  tests-e2e:
     runs-on: ubuntu-latest
     needs: [deploy-staging]
     strategy:
@@ -269,7 +269,7 @@ jobs:
         uses: cypress-io/github-action@v6
         with:
           working-directory: frontend
-          start: false
+          install: false
           browser: ${{ matrix.browser }}
         env:
           CYPRESS_ADMIN_EMAIL: ${{ secrets.CYPRESS_ADMIN_EMAIL }}
