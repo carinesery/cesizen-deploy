@@ -243,8 +243,6 @@ jobs:
             cd ~/cesizen/staging
            
             sudo docker compose -f docker-compose.staging.yml up -d --pull always --wait
-
-            sudo docker exec cesizen_api_staging npx prisma migrate deploy --config build/prisma.config.js
             
             sudo docker image prune -f
           EOF
@@ -319,22 +317,6 @@ jobs:
             export FRONTEND_IMAGE=ghcr.io/carinesery/cesizen-deploy/frontend:${{ github.ref_name }}
 
             sudo -E docker compose -f docker-compose.prod.yml up -d --pull always --wait
-
-            echo "Waiting for API to start..."
-            timeout=60
-            elapsed=0
-
-            until [ "$(docker inspect --format='{{.State.Health.Status}}' cesizen_api_prod)" = "healthy" ]; do
-              sleep 2
-              elapsed=$((elapsed+2))
-
-              if [ $elapsed -ge $timeout ]; then
-                echo "API not healthy after 60s"
-                exit 1
-              fi
-            done
-
-            sudo docker exec cesizen_api_prod npx prisma migrate deploy --config build/prisma.config.js
 
             sudo docker image prune -f
           EOF
